@@ -13,7 +13,7 @@ server.listen(PORT, '0.0.0.0', () => {
 });
 
 // ၂။ Render Environment Variable မှ Token ကို ယူခြင်း
-const token = process.env.BOT_TOKEN;
+const bot = new Telegraf('8956976675:AAGIR3PZFUAKD6iF8FEiFO2oV6pLEBXCAYU');
 if (!token) {
   console.error("ERROR: BOT_TOKEN is missing in Render Environment Variables!");
 }
