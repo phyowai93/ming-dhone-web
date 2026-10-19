@@ -1,7 +1,7 @@
 const http = require('http');
 const { Telegraf, Markup } = require('telegraf');
 
-// ၁။ Render ပိတ်မသွားစေရန် HTTP Server ဖွင့်ခြင်း
+// Render Web Service အတွက် HTTP Server ဖွင့်ခြင်း
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('Ming Dhone Bot is running!');
@@ -12,14 +12,9 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is listening on port ${PORT}`);
 });
 
-// ၂။ Render Environment Variable မှ Token ကို ယူခြင်း
-const bot = new Telegraf('8956976675:AAGIR3PZFUAKD6iF8FEiFO2oV6pLEBXCAYU');
-if (!token) {
-  console.error("ERROR: BOT_TOKEN is missing in Render Environment Variables!");
-}
-const bot = new Telegraf(token);
+// Telegram Bot ကို Token တိုက်ရိုက်ထည့်၍ တည်ဆောက်ခြင်း
+const bot = new Telegraf('8956976675:AAGIR3PZFUAKD6iF8FEiF02c...');
 
-// Error Handler
 bot.catch((err, ctx) => {
   console.error(`Error for ${ctx.updateType}:`, err);
 });
