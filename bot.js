@@ -1,7 +1,7 @@
 const http = require('http');
 const { Telegraf, Markup } = require('telegraf');
 
-// Render Web Service အတွက် HTTP Server ဖွင့်ခြင်း
+// Render အတွက် HTTP Server ဖွင့်ခြင်း
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('Ming Dhone Bot is running!');
@@ -12,8 +12,12 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is listening on port ${PORT}`);
 });
 
-// Telegram Bot ကို Token တိုက်ရိုက်ထည့်၍ တည်ဆောက်ခြင်း
-const bot = new Telegraf('8956976675:AAGIR3PZFUAKD6iF8FEiF02c...');
+// Render Environment Variable မှ Token ကို ယူခြင်း
+const token = process.env.BOT_TOKEN;
+if (!token) {
+  console.error("ERROR: BOT_TOKEN is missing in Render Environment Variables!");
+}
+const bot = new Telegraf(token);
 
 bot.catch((err, ctx) => {
   console.error(`Error for ${ctx.updateType}:`, err);
@@ -30,7 +34,6 @@ const productsMenu = Markup.inlineKeyboard([
   [Markup.button.callback('Night Fury (200 KS)', 'prod_nightfury')]
 ]);
 
-// Handlers
 bot.start((ctx) => {
   ctx.reply(
     'မင်္ဂလာပါ! Ming Dhone 3D Model Marketplace မှ ကြိုဆိုပါတယ်။\n\nအောက်ပါ မီနူးမှတစ်ဆင့် လိုအပ်သည်များကို ရွေးချယ်နိုင်ပါသည်။',
@@ -97,7 +100,6 @@ bot.action('show_kpay', async (ctx) => {
   }
 });
 
-// Launch Bot
 bot.launch();
 console.log('Bot is running...');
 
