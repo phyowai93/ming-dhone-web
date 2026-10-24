@@ -21,8 +21,8 @@ const bot = new Telegraf(token);
 const ADMIN_CHAT_ID = '5889915101'; 
 
 const userStates = new Map();
-const userWallets = new Map(); 
-const userTopupAmounts = new Map(); // Customer ရွေးချယ်ထားသော ငွေဖြည့်ပမာဏ သိမ်းဆည်းရန်
+const userWallets = new Map(); // Customer တစ်ဦးချင်းစီ၏ Wallet လက်ကျန်ငွေ
+const userTopupAmounts = new Map(); 
 
 bot.catch((err, ctx) => {
   console.error(`Error for ${ctx.updateType}:`, err);
@@ -66,7 +66,6 @@ bot.hears('💰 Wallet', async (ctx) => {
   );
 });
 
-// 👉 ငွေဖြည့်ရန် နှိပ်သည့်အခါ ပမာဏရွေးချယ်စရာ ခလုတ်များပြသခြင်း
 bot.hears('📥 ငွေဖြည့်ရန်', async (ctx) => {
   ctx.reply(
     '📥 **ငွေဖြည့်သွင်းမည့် ပမာဏကို ရွေးချယ်ပါ -**',
@@ -85,7 +84,6 @@ bot.hears('📥 ငွေဖြည့်ရန်', async (ctx) => {
   );
 });
 
-// Customer က ငွေပမာဏ တစ်ခုခုကို နှိပ်လိုက်သည့်အခါ
 bot.action(/^select_topup_(\d+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const amount = parseInt(ctx.match[1]);
@@ -109,52 +107,106 @@ bot.action(/^select_topup_(\d+)$/, async (ctx) => {
   }
 });
 
+// Model 1: ထီးလိုမင်းလို ဘုရား (Wallet ဖြင့်ဝယ်ရန် သို့မဟုတ် KPay ဖြင့်ဝယ်ရန် ရွေးချယ်စရာ ပေးမည်)
 bot.action('buy_buddha', async (ctx) => {
   await ctx.answerCbQuery();
-  userStates.set(Number(ctx.from.id), 'buddha');
   try {
     await ctx.replyWithMediaGroup([
       { type: 'photo', media: { source: './buddha1.jpg' }, caption: '🙏 ထီးလိုမင်းလို ဘုရား 3D Model (STL)\n\n💰 ဈေးနှုန်း: 15,000 KS' },
       { type: 'photo', media: { source: './buddha2.jpg' } }
     ]);
     await ctx.reply(
-      '💳 ဝယ်ယူရန်အတွက် အောက်ပါ KPay ဖြင့် ငွေလွှဲပြီး ငွေလွှဲပြေစာ (Screenshot) ပုံကို ဤ bot chatထဲသို့ တိုက်ရိုက် ပို့ပေးပါရန်။',
-      Markup.inlineKeyboard([[Markup.button.callback('💳 KBZPay အချက်အလက် ကြည့်ရန်', 'pay_kpay_buddha')]])
+      '💳 ဝယ်ယူမည့် နည်းလမ်းကို ရွေးချယ်ပါ -',
+      Markup.inlineKeyboard([
+        [Markup.button.callback('💰 Wallet ဖြင့် ဝယ်မည် (15,000 KS)', 'pay_wallet_buddha')],
+        [Markup.button.callback('💳 KBZPay ဖြင့် ငွေလွှဲဝယ်မည်', 'pay_kpay_buddha')]
+      ])
     );
   } catch (error) {
-    ctx.reply('🙏 ထီးလိုမင်းလို ဘုရား (15,000 KS)\nKBZPay အချက်အလက် ကြည့်ရန် နှိပ်ပါ -',
-      Markup.inlineKeyboard([[Markup.button.callback('💳 KBZPay အချက်အလက် ကြည့်ရန်', 'pay_kpay_buddha')]]));
+    ctx.reply('🙏 ထီးလိုမင်းလို ဘုရား (15,000 KS)\nဝယ်ယူမည့် နည်းလမ်းကို ရွေးချယ်ပါ -',
+      Markup.inlineKeyboard([
+        [Markup.button.callback('💰 Wallet ဖြင့် ဝယ်မည် (15,000 KS)', 'pay_wallet_buddha')],
+        [Markup.button.callback('💳 KBZPay ဖြင့် ငွေလွှဲဝယ်မည်', 'pay_kpay_buddha')]
+      ]));
   }
 });
 
+// Model 2: Night Fury
 bot.action('buy_nightfury', async (ctx) => {
   await ctx.answerCbQuery();
-  userStates.set(Number(ctx.from.id), 'nightfury');
   try {
     await ctx.replyWithMediaGroup([
       { type: 'photo', media: { source: './nightfury1.jpg' }, caption: '🐉 Night Fury 3D Model (STL)\n\n💰 ဈေးနှုန်း: 200 KS' },
       { type: 'photo', media: { source: './nightfury2.jpg' } }
     ]);
     await ctx.reply(
-      '💳 ဝယ်ယူရန်အတွက် အောက်ပါ KPay ဖြင့် ငွေလွှဲပြီး ငွေလွှဲပြေစာ (Screenshot) ပုံကို ဤ bot chatထဲသို့ တိုက်ရိုက် ပို့ပေးပါရန်။',
-      Markup.inlineKeyboard([[Markup.button.callback('💳 KBZPay အချက်အလက် ကြည့်ရန်', 'pay_kpay_nightfury')]])
+      '💳 ဝယ်ယူမည့် နည်းလမ်းကို ရွေးချယ်ပါ -',
+      Markup.inlineKeyboard([
+        [Markup.button.callback('💰 Wallet ဖြင့် ဝယ်မည် (200 KS)', 'pay_wallet_nightfury')],
+        [Markup.button.callback('💳 KBZPay ဖြင့် ငွေလွှဲဝယ်မည်', 'pay_kpay_nightfury')]
+      ])
     );
   } catch (error) {
-    ctx.reply('🐉 Night Fury (200 KS)\nKBZPay အချက်အလက် ကြည့်ရန် နှိပ်ပါ -',
-      Markup.inlineKeyboard([[Markup.button.callback('💳 KBZPay အချက်အလက် ကြည့်ရန်', 'pay_kpay_nightfury')]]));
+    ctx.reply('🐉 Night Fury (200 KS)\nဝယ်ယူမည့် နည်းလမ်းကို ရွေးချယ်ပါ -',
+      Markup.inlineKeyboard([
+        [Markup.button.callback('💰 Wallet ဖြင့် ဝယ်မည် (200 KS)', 'pay_wallet_nightfury')],
+        [Markup.button.callback('💳 KBZPay ဖြင့် ငွေလွှဲဝယ်မည်', 'pay_kpay_nightfury')]
+      ]));
   }
+});
+
+// 👉 Wallet ဖြင့် တိုက်ရိုက်ဝယ်ယူခြင်း (ဘုရား - 15,000 KS)
+bot.action('pay_wallet_buddha', async (ctx) => {
+  await ctx.answerCbQuery();
+  const userId = Number(ctx.from.id);
+  const balance = userWallets.get(userId) || 0;
+  const price = 15000;
+
+  if (balance < price) {
+    return ctx.reply(`❌ သင့် Wallet ထဲတွင် ငွေလုံလောက်မှု မရှိပါ။\n\n💳 လက်ကျန်ငွေ: \`${balance.toLocaleString()} KS\`\n💰 လိုအပ်သောငွေ: \`${price.toLocaleString()} KS\`\n\nကျေးဇူးပြု၍ အောက်ခြေမီနူးမှ **"📥 ငွေဖြည့်ရန်"** ကို နှိပ်၍ ငွေဖြည့်ပါ။`, { parse_mode: 'Markdown' });
+  }
+
+  // ငွေဖြတ်မည်
+  userWallets.set(userId, balance - price);
+
+  // ဖိုင်လင့်ခ် ပို့မည်
+  const linkMsg = '🙏 ကျေးဇူးတင်ပါတယ်။ ထီးလိုမင်းလို ဘုရား 3D Model (STL) ဖိုင်ကို အောက်ပါ Link မှ Download ရယူနိုင်ပါပြီ -\n\n🔗 https://drive.google.com/file/d/12NFsX8QQtQqC1EnaF9f4TOef8YenyWX0/view?usp=drive_link';
+  await ctx.reply(`✅ Wallet ထဲမှ \`${price.toLocaleString()} KS\` ဖြတ်တောက်ပြီး ဝယ်ယူမှု အောင်မြင်ပါသည်။\n💳 လက်ကျန်ငွေအသစ်: \`${(balance - price).toLocaleString()} KS\``, { parse_mode: 'Markdown' });
+  await ctx.reply(linkMsg);
+});
+
+// 👉 Wallet ဖြင့် တိုက်ရိုက်ဝယ်ယူခြင်း (Night Fury - 200 KS)
+bot.action('pay_wallet_nightfury', async (ctx) => {
+  await ctx.answerCbQuery();
+  const userId = Number(ctx.from.id);
+  const balance = userWallets.get(userId) || 0;
+  const price = 200;
+
+  if (balance < price) {
+    return ctx.reply(`❌ သင့် Wallet ထဲတွင် ငွေလုံလောက်မှု မရှိပါ။\n\n💳 လက်ကျန်ငွေ: \`${balance.toLocaleString()} KS\`\n💰 လိုအပ်သောငွေ: \`${price.toLocaleString()} KS\`\n\nကျေးဇူးပြု၍ အောက်ခြေမီနူးမှ **"📥 ငွေဖြည့်ရန်"** ကို နှိပ်၍ ငွေဖြည့်ပါ။`, { parse_mode: 'Markdown' });
+  }
+
+  // ငွေဖြတ်မည်
+  userWallets.set(userId, balance - price);
+
+  // ဖိုင်လင့်ခ် ပို့မည်
+  const linkMsg = '🐉 ကျေးဇူးတင်ပါတယ်။ Night Fury 3D Model (STL) ဖိုင်ကို အောက်ပါ Link မှ Download ရယူနိုင်ပါပြီ -\n\n🔗 https://drive.google.com/file/d/1fbf3FDxSut79SUK6X-JvmqM4smyusWbQ/view?usp=drive_link';
+  await ctx.reply(`✅ Wallet ထဲမှ \`${price.toLocaleString()} KS\` ဖြတ်တောက်ပြီး ဝယ်ယူမှု အောင်မြင်ပါသည်။\n💳 လက်ကျန်ငွေအသစ်: \`${(balance - price).toLocaleString()} KS\``, { parse_mode: 'Markdown' });
+  await ctx.reply(linkMsg);
 });
 
 bot.action('pay_kpay_buddha', async (ctx) => {
   await ctx.answerCbQuery();
-  const msg = '💳 **KBZPay Payment Details**\n\n📱 KPay Number: `09687880957`\n👤 Name: Phyo Wai Kyaw\n💰 Amount: 15,000 KS\n\n📌 ငွေလွှဲပြီးပါက **စလစ်ပုံ (Screenshot)** ကို ဤ chat ထဲသို့ တိုက်ရိုက် ပို့ပေးပါ။';
+  userStates.set(Number(ctx.from.id), 'buddha');
+  const msg = '💳 **KBZPay Payment Details (ထီးလိုမင်းလို ဘုရား - 15,000 KS)**\n\n📱 KPay Number: `09687880957`\n👤 Name: Phyo Wai Kyaw\n💰 Amount: 15,000 KS\n\n📌 ငွေလွှဲပြီးပါက **စလစ်ပုံ (Screenshot)** ကို ဤ chat ထဲသို့ တိုက်ရိုက် ပို့ပေးပါ။';
   try { await ctx.replyWithPhoto({ source: './kpay_qr.jpg' }, { caption: msg, parse_mode: 'Markdown' }); } 
   catch (e) { ctx.reply(msg, { parse_mode: 'Markdown' }); }
 });
 
 bot.action('pay_kpay_nightfury', async (ctx) => {
   await ctx.answerCbQuery();
-  const msg = '💳 **KBZPay Payment Details**\n\n📱 KPay Number: `09687880957`\n👤 Name: Phyo Wai Kyaw\n💰 Amount: 200 KS\n\n📌 ငွေလွှဲပြီးပါက **စလစ်ပုံ (Screenshot)** ကို ဤ chat ထဲသို့ တိုက်ရိုက် ပို့ပေးပါ။';
+  userStates.set(Number(ctx.from.id), 'nightfury');
+  const msg = '💳 **KBZPay Payment Details (Night Fury - 200 KS)**\n\n📱 KPay Number: `09687880957`\n👤 Name: Phyo Wai Kyaw\n💰 Amount: 200 KS\n\n📌 ငွေလွှဲပြီးပါက **စလစ်ပုံ (Screenshot)** ကို ဤ chat ထဲသို့ တိုက်ရိုက် ပို့ပေးပါ။';
   try { await ctx.replyWithPhoto({ source: './kpay_qr.jpg' }, { caption: msg, parse_mode: 'Markdown' }); } 
   catch (e) { ctx.reply(msg, { parse_mode: 'Markdown' }); }
 });
@@ -162,11 +214,11 @@ bot.action('pay_kpay_nightfury', async (ctx) => {
 bot.on('photo', async (ctx) => {
   const userId = Number(ctx.from.id);
   const username = ctx.from.username ? `@${ctx.from.username}` : ctx.from.first_name;
-  const state = userStates.get(userId) || 'buddha';
+  const state = userStates.get(userId) || 'topup';
 
   try {
     if (state === 'topup') {
-      const topupAmount = userTopupAmounts.get(userId) || 0;
+      const topupAmount = userTopupAmounts.get(userId) || 500;
       await ctx.telegram.sendPhoto(ADMIN_CHAT_ID, ctx.message.photo[ctx.message.photo.length - 1].file_id, {
         caption: `🔔 **ငွေဖြည့်သွင်းရန် စလစ်အသစ်**\n\n` +
                  `👤 ဝယ်ယူသူ: ${username} (ID: \`${userId}\`)\n` +
@@ -200,7 +252,6 @@ bot.on('photo', async (ctx) => {
   }
 });
 
-// Admin က ငွေဖြည့်အတည်ပြုရန် ခလုတ်ကို နှိပ်သောအခါ
 bot.action(/^approve_topup_(.+)_(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const targetUserId = Number(ctx.match[1]);
@@ -219,7 +270,7 @@ bot.action(/^approve_topup_(.+)_(.+)$/, async (ctx) => {
       { parse_mode: 'Markdown' }
     );
 
-    await ctx.reply(`✅ Customer (ID: ${targetUserId}) ၏ Wallet ထဲသို့ ${amount.toLocaleString()} KS ထည့်သွင်းပြီးပါပြီ။ (လက်ကျန်ငွေအသစ်: ${newBalance.toLocaleString()} KS)`);
+    await ctx.reply(`✅ Customer (ID: ${targetUserId}) ၏ Wallet ထဲတွင် ငွေဖြည့်သွင်းပြီးပါပြီ။ (လက်ကျန်ငွေအသစ်: ${newBalance.toLocaleString()} KS)`);
   } catch (err) {
     console.error('Customer ထံ Message ပို့ရာတွင် အမှားဖြစ်နေသည်:', err);
     await ctx.reply(`❌ Customer ထံ အကြောင်းကြားစာ ပို့မရပါ။`);
