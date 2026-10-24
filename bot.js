@@ -21,7 +21,8 @@ const bot = new Telegraf(token);
 const ADMIN_CHAT_ID = '5889915101'; 
 
 const userStates = new Map();
-const userWallets = new Map(); // Customer တစ်ဦးချင်းစီ၏ လက်ကျန်ငွေ သိမ်းဆည်းရန်
+const userWallets = new Map(); 
+const userTopupAmounts = new Map(); // Customer ရွေးချယ်ထားသော ငွေဖြည့်ပမာဏ သိမ်းဆည်းရန်
 
 bot.catch((err, ctx) => {
   console.error(`Error for ${ctx.updateType}:`, err);
@@ -54,7 +55,7 @@ bot.hears('📞 Contact Admin', async (ctx) => {
 });
 
 bot.hears('💰 Wallet', async (ctx) => {
-  const userId = Number(ctx.from.id); // Number သို့ ပြောင်းလဲခြင်း
+  const userId = Number(ctx.from.id);
   const balance = userWallets.get(userId) || 0;
   ctx.reply(
     '💰 **သင့်ရဲ့ ပိုက်ဆံအိတ် (Wallet)**\n\n' +
@@ -65,14 +66,41 @@ bot.hears('💰 Wallet', async (ctx) => {
   );
 });
 
+// 👉 ငွေဖြည့်ရန် နှိပ်သည့်အခါ ပမာဏရွေးချယ်စရာ ခလုတ်များပြသခြင်း
 bot.hears('📥 ငွေဖြည့်ရန်', async (ctx) => {
-  userStates.set(Number(ctx.from.id), 'topup');
+  ctx.reply(
+    '📥 **ငွေဖြည့်သွင်းမည့် ပမာဏကို ရွေးချယ်ပါ -**',
+    {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        [
+          Markup.button.callback('500 KS', 'select_topup_500'),
+          Markup.button.callback('5,000 KS', 'select_topup_5000')
+        ],
+        [
+          Markup.button.callback('10,000 KS', 'select_topup_10000')
+        ]
+      ])
+    }
+  );
+});
+
+// Customer က ငွေပမာဏ တစ်ခုခုကို နှိပ်လိုက်သည့်အခါ
+bot.action(/^select_topup_(\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const amount = parseInt(ctx.match[1]);
+  const userId = Number(ctx.from.id);
+
+  userStates.set(userId, 'topup');
+  userTopupAmounts.set(userId, amount);
+
   const topUpMsg = '💳 **KBZPay ဖြင့် ငွေဖြည့်သွင်းရန်**\n\n' +
+                   '💰 ရွေးချယ်ထားသော ပမာဏ: `' + amount.toLocaleString() + ' KS`\n\n' +
                    '📱 KPay Number: `09687880957`\n' +
                    '👤 Name: Phyo Wai Kyaw\n\n' +
                    '📌 **ငွေဖြည့်နည်းလမ်း:**\n' +
-                   '၁။ အထက်ပါ KPay အကောင့်သို့ လိုအပ်သော ငွေပမာဏ လွှဲပေးပါ။\n' +
-                   '၂။ ငွေလွှဲပြီးပါက **Transaction Slip (စလစ်ပုံ)** ကို ဤ bot chat ထဲသို့ တိုက်ရိုက် ပို့ပေးပါ။ Admin မှ စစ်ဆေးပြီး Wallet ထဲသို့ ငွေထည့်သွင်းပေးပါမည်။';
+                   '၁။ အထက်ပါ KPay အကောင့်သို့ `' + amount.toLocaleString() + ' KS` လွှဲပေးပါ။\n' +
+                   '၂။ ငွေလွှဲပြီးပါက **Transaction Slip (စလစ်ပုံ)** ကို ဤ bot chat ထဲသို့ တိုက်ရိုက် ပို့ပေးပါ။';
 
   try {
     await ctx.replyWithPhoto({ source: './kpay_qr.jpg' }, { caption: topUpMsg, parse_mode: 'Markdown' });
@@ -138,21 +166,15 @@ bot.on('photo', async (ctx) => {
 
   try {
     if (state === 'topup') {
+      const topupAmount = userTopupAmounts.get(userId) || 0;
       await ctx.telegram.sendPhoto(ADMIN_CHAT_ID, ctx.message.photo[ctx.message.photo.length - 1].file_id, {
         caption: `🔔 **ငွေဖြည့်သွင်းရန် စလစ်အသစ်**\n\n` +
-                 `👤 ဝယ်ယူသူ: ${username} (ID: \`${userId}\`)\n\n` +
-                 `ငွေလွှဲငွေပမာဏ စစ်ဆေးပြီး အောက်ပါခလုတ်များမှ သင့်တော်သည့် ငွေပမာဏကို ရွေးချယ်ပေးပါ -`,
+                 `👤 ဝယ်ယူသူ: ${username} (ID: \`${userId}\`)\n` +
+                 `💰 ရွေးချယ်ထားသော ပမာဏ: \`${topupAmount.toLocaleString()} KS\`\n\n` +
+                 `ငွေလွှဲငွေပမာဏ မှန်ကန်မှုရှိမရှိ စစ်ဆေးပြီးပါက အောက်ပါခလုတ်ကို နှိပ်၍ Wallet ထဲသို့ ငွေထည့်ပေးပါ။`,
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard([
-          [
-            Markup.button.callback(`+200 KS`, `topup_200_${userId}`),
-            Markup.button.callback(`+1,000 KS`, `topup_1000_${userId}`),
-            Markup.button.callback(`+5,000 KS`, `topup_5000_${userId}`)
-          ],
-          [
-            Markup.button.callback(`+15,000 KS`, `topup_15000_${userId}`),
-            Markup.button.callback(`+20,000 KS`, `topup_20000_${userId}`)
-          ]
+          [Markup.button.callback(`✅ ငွေဖြည့်အတည်ပြုမည် (${topupAmount.toLocaleString()} KS)`, `approve_topup_${userId}_${topupAmount}`)]
         ])
       });
 
@@ -178,10 +200,11 @@ bot.on('photo', async (ctx) => {
   }
 });
 
-bot.action(/^topup_(\d+)_(.+)$/, async (ctx) => {
+// Admin က ငွေဖြည့်အတည်ပြုရန် ခလုတ်ကို နှိပ်သောအခါ
+bot.action(/^approve_topup_(.+)_(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
-  const amount = parseInt(ctx.match[1]);
-  const targetUserId = Number(ctx.match[2]); // Number သို့ ပြောင်းလဲခြင်း
+  const targetUserId = Number(ctx.match[1]);
+  const amount = parseInt(ctx.match[2]);
 
   const currentBalance = userWallets.get(targetUserId) || 0;
   const newBalance = currentBalance + amount;
@@ -196,7 +219,7 @@ bot.action(/^topup_(\d+)_(.+)$/, async (ctx) => {
       { parse_mode: 'Markdown' }
     );
 
-    await ctx.reply(`✅ Customer (ID: ${targetUserId}) ၏ Wallet ထဲသို့ ${amount.toLocaleString()} KS ထည့်သွင်းပြီးပါပြီ။ (လက်ကျန်ငွေ: ${newBalance.toLocaleString()} KS)`);
+    await ctx.reply(`✅ Customer (ID: ${targetUserId}) ၏ Wallet ထဲသို့ ${amount.toLocaleString()} KS ထည့်သွင်းပြီးပါပြီ။ (လက်ကျန်ငွေအသစ်: ${newBalance.toLocaleString()} KS)`);
   } catch (err) {
     console.error('Customer ထံ Message ပို့ရာတွင် အမှားဖြစ်နေသည်:', err);
     await ctx.reply(`❌ Customer ထံ အကြောင်းကြားစာ ပို့မရပါ။`);
