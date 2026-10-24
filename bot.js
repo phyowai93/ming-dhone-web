@@ -38,7 +38,7 @@ bot.start((ctx) => {
 
 bot.hears('🏠 Main Menu', async (ctx) => {
   ctx.reply(
-    '💎 **Ming Dhone Paid Models**',
+    '💎Premium Models💎',
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
@@ -54,7 +54,7 @@ bot.hears('📞 Contact Admin', async (ctx) => {
 });
 
 bot.hears('💰 Wallet', async (ctx) => {
-  const userId = ctx.from.id;
+  const userId = Number(ctx.from.id); // Number သို့ ပြောင်းလဲခြင်း
   const balance = userWallets.get(userId) || 0;
   ctx.reply(
     '💰 **သင့်ရဲ့ ပိုက်ဆံအိတ် (Wallet)**\n\n' +
@@ -66,7 +66,7 @@ bot.hears('💰 Wallet', async (ctx) => {
 });
 
 bot.hears('📥 ငွေဖြည့်ရန်', async (ctx) => {
-  userStates.set(ctx.from.id, 'topup'); // ငွေဖြည့်မည့်အခြေအနေသို့ ပြောင်းလဲခြင်း
+  userStates.set(Number(ctx.from.id), 'topup');
   const topUpMsg = '💳 **KBZPay ဖြင့် ငွေဖြည့်သွင်းရန်**\n\n' +
                    '📱 KPay Number: `09687880957`\n' +
                    '👤 Name: Phyo Wai Kyaw\n\n' +
@@ -83,7 +83,7 @@ bot.hears('📥 ငွေဖြည့်ရန်', async (ctx) => {
 
 bot.action('buy_buddha', async (ctx) => {
   await ctx.answerCbQuery();
-  userStates.set(ctx.from.id, 'buddha');
+  userStates.set(Number(ctx.from.id), 'buddha');
   try {
     await ctx.replyWithMediaGroup([
       { type: 'photo', media: { source: './buddha1.jpg' }, caption: '🙏 ထီးလိုမင်းလို ဘုရား 3D Model (STL)\n\n💰 ဈေးနှုန်း: 15,000 KS' },
@@ -101,7 +101,7 @@ bot.action('buy_buddha', async (ctx) => {
 
 bot.action('buy_nightfury', async (ctx) => {
   await ctx.answerCbQuery();
-  userStates.set(ctx.from.id, 'nightfury');
+  userStates.set(Number(ctx.from.id), 'nightfury');
   try {
     await ctx.replyWithMediaGroup([
       { type: 'photo', media: { source: './nightfury1.jpg' }, caption: '🐉 Night Fury 3D Model (STL)\n\n💰 ဈေးနှုန်း: 200 KS' },
@@ -131,15 +131,13 @@ bot.action('pay_kpay_nightfury', async (ctx) => {
   catch (e) { ctx.reply(msg, { parse_mode: 'Markdown' }); }
 });
 
-// Customer က ပုံ (Screenshot) ပို့လိုက်သည့်အခါ
 bot.on('photo', async (ctx) => {
-  const userId = ctx.from.id;
+  const userId = Number(ctx.from.id);
   const username = ctx.from.username ? `@${ctx.from.username}` : ctx.from.first_name;
   const state = userStates.get(userId) || 'buddha';
 
   try {
     if (state === 'topup') {
-      // ငွေဖြည့်ရန် စလစ်ပုံဖြစ်ပါက Admin ဆီသို့ ငွေပမာဏရွေးချယ်ရန် ပို့မည်
       await ctx.telegram.sendPhoto(ADMIN_CHAT_ID, ctx.message.photo[ctx.message.photo.length - 1].file_id, {
         caption: `🔔 **ငွေဖြည့်သွင်းရန် စလစ်အသစ်**\n\n` +
                  `👤 ဝယ်ယူသူ: ${username} (ID: \`${userId}\`)\n\n` +
@@ -160,7 +158,6 @@ bot.on('photo', async (ctx) => {
 
       await ctx.reply('✅ ငွေဖြည့်ပြေစာ (Screenshot) လက်ခံရရှိပါပြီ။ Admin မှ ငွေစာရင်းစစ်ဆေးပြီးပါက သင့် Wallet ထဲသို့ ငွေဖြည့်သွင်းပေးပါမည်။');
     } else {
-      // ပုံမှန် Model ဝယ်ယူသည့် စလစ်ပုံဖြစ်ပါက Link ပို့မည့် ခလုတ်ပြမည်
       const product = state;
       await ctx.telegram.sendPhoto(ADMIN_CHAT_ID, ctx.message.photo[ctx.message.photo.length - 1].file_id, {
         caption: `🔔 **ငွေလွှဲပြေစာအသစ် (Model ဝယ်ယူမှု)**\n\n` +
@@ -181,19 +178,16 @@ bot.on('photo', async (ctx) => {
   }
 });
 
-// Admin က ငွေဖြည့်ငွေပမာဏ ခလုတ်ကို နှိပ်သောအခါ
 bot.action(/^topup_(\d+)_(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const amount = parseInt(ctx.match[1]);
-  const targetUserId = ctx.match[2];
+  const targetUserId = Number(ctx.match[2]); // Number သို့ ပြောင်းလဲခြင်း
 
-  // Customer ၏ Wallet ထဲသို့ ငွေပေါင်းထည့်ခြင်း
   const currentBalance = userWallets.get(targetUserId) || 0;
   const newBalance = currentBalance + amount;
   userWallets.set(targetUserId, newBalance);
 
   try {
-    // Customer ထံသို့ အကြောင်းကြားစာနှင့် လက်ကျန်ငွေ ပို့ခြင်း
     await bot.telegram.sendMessage(
       targetUserId,
       `🎉 **ငွေဖြည့်သွင်းမှု အောင်မြင်ပါသည်။**\n\n` +
@@ -209,11 +203,10 @@ bot.action(/^topup_(\d+)_(.+)$/, async (ctx) => {
   }
 });
 
-// Admin က Model ဝယ်ယူမှုအတွက် Download Link ပို့ခိုင်းသည့်အခါ
 bot.action(/^approve_(.+)_(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const product = ctx.match[1];
-  const targetUserId = ctx.match[2];
+  const targetUserId = Number(ctx.match[2]);
 
   let downloadLinkMessage = '';
 
