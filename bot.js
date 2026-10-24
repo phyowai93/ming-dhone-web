@@ -21,7 +21,7 @@ const bot = new Telegraf(token);
 const ADMIN_CHAT_ID = '5889915101'; 
 
 const userStates = new Map();
-const userWallets = new Map(); // Customer တစ်ဦးချင်းစီ၏ Wallet လက်ကျန်ငွေ
+const userWallets = new Map(); 
 const userTopupAmounts = new Map(); 
 
 bot.catch((err, ctx) => {
@@ -39,7 +39,7 @@ bot.start((ctx) => {
 
 bot.hears('🏠 Main Menu', async (ctx) => {
   ctx.reply(
-    '💎Premium Models💎',
+    '💎 **Ming Dhone Paid Models**',
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
@@ -107,7 +107,6 @@ bot.action(/^select_topup_(\d+)$/, async (ctx) => {
   }
 });
 
-// Model 1: ထီးလိုမင်းလို ဘုရား (Wallet ဖြင့်ဝယ်ရန် သို့မဟုတ် KPay ဖြင့်ဝယ်ရန် ရွေးချယ်စရာ ပေးမည်)
 bot.action('buy_buddha', async (ctx) => {
   await ctx.answerCbQuery();
   try {
@@ -131,7 +130,6 @@ bot.action('buy_buddha', async (ctx) => {
   }
 });
 
-// Model 2: Night Fury
 bot.action('buy_nightfury', async (ctx) => {
   await ctx.answerCbQuery();
   try {
@@ -155,7 +153,6 @@ bot.action('buy_nightfury', async (ctx) => {
   }
 });
 
-// 👉 Wallet ဖြင့် တိုက်ရိုက်ဝယ်ယူခြင်း (ဘုရား - 15,000 KS)
 bot.action('pay_wallet_buddha', async (ctx) => {
   await ctx.answerCbQuery();
   const userId = Number(ctx.from.id);
@@ -166,16 +163,13 @@ bot.action('pay_wallet_buddha', async (ctx) => {
     return ctx.reply(`❌ သင့် Wallet ထဲတွင် ငွေလုံလောက်မှု မရှိပါ။\n\n💳 လက်ကျန်ငွေ: \`${balance.toLocaleString()} KS\`\n💰 လိုအပ်သောငွေ: \`${price.toLocaleString()} KS\`\n\nကျေးဇူးပြု၍ အောက်ခြေမီနူးမှ **"📥 ငွေဖြည့်ရန်"** ကို နှိပ်၍ ငွေဖြည့်ပါ။`, { parse_mode: 'Markdown' });
   }
 
-  // ငွေဖြတ်မည်
   userWallets.set(userId, balance - price);
 
-  // ဖိုင်လင့်ခ် ပို့မည်
   const linkMsg = '🙏 ကျေးဇူးတင်ပါတယ်။ ထီးလိုမင်းလို ဘုရား 3D Model (STL) ဖိုင်ကို အောက်ပါ Link မှ Download ရယူနိုင်ပါပြီ -\n\n🔗 https://drive.google.com/file/d/12NFsX8QQtQqC1EnaF9f4TOef8YenyWX0/view?usp=drive_link';
   await ctx.reply(`✅ Wallet ထဲမှ \`${price.toLocaleString()} KS\` ဖြတ်တောက်ပြီး ဝယ်ယူမှု အောင်မြင်ပါသည်။\n💳 လက်ကျန်ငွေအသစ်: \`${(balance - price).toLocaleString()} KS\``, { parse_mode: 'Markdown' });
   await ctx.reply(linkMsg);
 });
 
-// 👉 Wallet ဖြင့် တိုက်ရိုက်ဝယ်ယူခြင်း (Night Fury - 200 KS)
 bot.action('pay_wallet_nightfury', async (ctx) => {
   await ctx.answerCbQuery();
   const userId = Number(ctx.from.id);
@@ -186,10 +180,8 @@ bot.action('pay_wallet_nightfury', async (ctx) => {
     return ctx.reply(`❌ သင့် Wallet ထဲတွင် ငွေလုံလောက်မှု မရှိပါ။\n\n💳 လက်ကျန်ငွေ: \`${balance.toLocaleString()} KS\`\n💰 လိုအပ်သောငွေ: \`${price.toLocaleString()} KS\`\n\nကျေးဇူးပြု၍ အောက်ခြေမီနူးမှ **"📥 ငွေဖြည့်ရန်"** ကို နှိပ်၍ ငွေဖြည့်ပါ။`, { parse_mode: 'Markdown' });
   }
 
-  // ငွေဖြတ်မည်
   userWallets.set(userId, balance - price);
 
-  // ဖိုင်လင့်ခ် ပို့မည်
   const linkMsg = '🐉 ကျေးဇူးတင်ပါတယ်။ Night Fury 3D Model (STL) ဖိုင်ကို အောက်ပါ Link မှ Download ရယူနိုင်ပါပြီ -\n\n🔗 https://drive.google.com/file/d/1fbf3FDxSut79SUK6X-JvmqM4smyusWbQ/view?usp=drive_link';
   await ctx.reply(`✅ Wallet ထဲမှ \`${price.toLocaleString()} KS\` ဖြတ်တောက်ပြီး ဝယ်ယူမှု အောင်မြင်ပါသည်။\n💳 လက်ကျန်ငွေအသစ်: \`${(balance - price).toLocaleString()} KS\``, { parse_mode: 'Markdown' });
   await ctx.reply(linkMsg);
@@ -211,10 +203,34 @@ bot.action('pay_kpay_nightfury', async (ctx) => {
   catch (e) { ctx.reply(msg, { parse_mode: 'Markdown' }); }
 });
 
+// 👉 မသက်ဆိုင်သော စာသားများ ပို့လာပါက အလိုအလျောက် ဖျက်ပေးမည့် Handler
+const validTexts = ['🏠 Main Menu', '📞 Contact Admin', '💰 Wallet', '📥 ငွေဖြည့်ရန်'];
+
+bot.on('text', async (ctx) => {
+  const text = ctx.message.text;
+  if (text.startsWith('/') || validTexts.includes(text)) {
+    return; 
+  }
+
+  try {
+    await ctx.deleteMessage(); 
+    const warning = await ctx.reply('⚠️ ကျေးဇူးပြု၍ မီနူးခလုတ်များကိုသာ အသုံးပြုပါ (သို့မဟုတ်) ငွေလွှဲစလစ်ပုံ (Screenshot) ကို ပို့ပေးပါ။');
+    setTimeout(async () => {
+      try { await ctx.telegram.deleteMessage(ctx.chat.id, warning.message_id); } catch(e) {}
+    }, 5000); 
+  } catch (err) {
+    console.error('စာဖျက်ရာတွင် အမှားဖြစ်နေသည်:', err);
+  }
+});
+
+// 👉 ငွေလွှဲစလစ်ပုံ ပို့လိုက်သည့်အခါ Loading (Message Editing) စနစ်ဖြင့် ဆောင်ရွက်ခြင်း
 bot.on('photo', async (ctx) => {
   const userId = Number(ctx.from.id);
   const username = ctx.from.username ? `@${ctx.from.username}` : ctx.from.first_name;
   const state = userStates.get(userId) || 'topup';
+
+  // ⏳ ပထမဆုံး Loading စာသား ပို့မည်
+  const loadingMsg = await ctx.reply('⏳ ငွေလွှဲပြေစာကို စစ်ဆေးနေပါပြီ၊ ခဏစောင့်ပေးပါ...');
 
   try {
     if (state === 'topup') {
@@ -230,7 +246,13 @@ bot.on('photo', async (ctx) => {
         ])
       });
 
-      await ctx.reply('✅ ငွေဖြည့်ပြေစာ (Screenshot) လက်ခံရရှိပါပြီ။ Admin မှ ငွေစာရင်းစစ်ဆေးပြီးပါက သင့် Wallet ထဲသို့ ငွေဖြည့်သွင်းပေးပါမည်။');
+      // 🔄 Loading စာသားကို အောင်မြင်ကြောင်း Live ပြောင်းလဲမည် (Edit)
+      await ctx.telegram.editMessageText(
+        ctx.chat.id, 
+        loadingMsg.message_id, 
+        undefined, 
+        '✅ ငွေဖြည့်ပြေစာ အောင်မြင်စွာ လက်ခံရရှိပါပြီ။ Admin မှ ငွေစာရင်းစစ်ဆေးပြီးပါက သင့် Wallet ထဲသို့ ငွေဖြည့်သွင်းပေးပါမည်။'
+      );
     } else {
       const product = state;
       await ctx.telegram.sendPhoto(ADMIN_CHAT_ID, ctx.message.photo[ctx.message.photo.length - 1].file_id, {
@@ -244,11 +266,21 @@ bot.on('photo', async (ctx) => {
         ])
       });
 
-      await ctx.reply('✅ ငွေလွှဲပြေစာ (Screenshot) လက်ခံရရှိပါပြီ။ Admin မှ ငွေစာရင်းစစ်ဆေးပြီးပါက ဤဘော့မှတစ်ဆင့် Download Link ကို ပို့ပေးပါမည်။');
+      // 🔄 Loading စာသားကို အောင်မြင်ကြောင်း Live ပြောင်းလဲမည် (Edit)
+      await ctx.telegram.editMessageText(
+        ctx.chat.id, 
+        loadingMsg.message_id, 
+        undefined, 
+        '✅ ငွေလွှဲပြေစာ အောင်မြင်စွာ လက်ခံရရှိပါပြီ။ Admin မှ ငွေစာရင်းစစ်ဆေးပြီးပါက ဤဘော့မှတစ်ဆင့် Download Link ကို ပို့ပေးပါမည်။'
+      );
     }
   } catch (err) {
     console.error('Admin ထံ ပုံပို့ရာတွင် အမှားဖြစ်နေသည်:', err);
-    ctx.reply('⚠️ စလစ်ပုံ ပို့ရာတွင် အခက်အခဲရှိနေပါသည်။ Admin (@TharPhyo9) ထံ တိုက်ရိုက် ပို့ပေးပါ။');
+    try {
+      await ctx.telegram.editMessageText(ctx.chat.id, loadingMsg.message_id, undefined, '⚠️ စလစ်ပုံ ပို့ရာတွင် အခက်အခဲရှိနေပါသည်။ Admin ထံ တိုက်ရိုက် ပို့ပေးပါ။');
+    } catch (e) {
+      ctx.reply('⚠️ စလစ်ပုံ ပို့ရာတွင် အခက်အခဲရှိနေပါသည်။');
+    }
   }
 });
 
