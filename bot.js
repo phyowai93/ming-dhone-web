@@ -18,11 +18,9 @@ if (!token) {
 }
 const bot = new Telegraf(token);
 
-// 👉 [အရေးကြီး] သင့်ရဲ့ Telegram Admin User ID ထည့်ရန် (ဥပမာ: '123456789')
-// Admin ID သိရန် Telegram တွင် @userinfobot ထံ သွား၍ /start နှိပ်ပြီး ကိုယ့် ID ကို ယူပါ။
+// 👉 သင့်ရဲ့ Telegram Admin User ID ထည့်ရန် (ဥပမာ: '123456789')
 const ADMIN_CHAT_ID = '5889915101'; 
 
-// User များ၏ ဝယ်ယူမည့်အခြေအနေ မှတ်သားရန်
 const userStates = new Map();
 
 bot.catch((err, ctx) => {
@@ -70,7 +68,7 @@ bot.hears('<<< နောက်သို့', async (ctx) => {
 // Model 1: ထီးလိုမင်းလို ဘုရား
 bot.action('buy_buddha', async (ctx) => {
   await ctx.answerCbQuery();
-  userStates.set(ctx.from.id, 'buddha'); // မှတ်သားထားမည်
+  userStates.set(ctx.from.id, 'buddha');
   try {
     await ctx.replyWithMediaGroup([
       { type: 'photo', media: { source: './buddha1.jpg' }, caption: '🙏 ထီးလိုမင်းလို ဘုရား 3D Model (STL)\n\n💰 ဈေးနှုန်း: 15,000 KS' },
@@ -81,7 +79,7 @@ bot.action('buy_buddha', async (ctx) => {
       Markup.inlineKeyboard([[Markup.button.callback('💳 KBZPay အချက်အလက် ကြည့်ရန်', 'pay_kpay_buddha')]])
     );
   } catch (error) {
-    ctx.reply('🙏 ထီးလိုမင်းလို ဘုရား (15,000 KS)\nပုံများ တင်ရာတွင် အမှားရှိနေပါသည်။ KBZPay အချက်အလက် ကြည့်ရန် နှိပ်ပါ -',
+    ctx.reply('🙏 ထီးလိုမင်းလို ဘုရား (15,000 KS)\nKBZPay အချက်အလက် ကြည့်ရန် နှိပ်ပါ -',
       Markup.inlineKeyboard([[Markup.button.callback('💳 KBZPay အချက်အလက် ကြည့်ရန်', 'pay_kpay_buddha')]]));
   }
 });
@@ -89,7 +87,7 @@ bot.action('buy_buddha', async (ctx) => {
 // Model 2: Night Fury
 bot.action('buy_nightfury', async (ctx) => {
   await ctx.answerCbQuery();
-  userStates.set(ctx.from.id, 'nightfury'); // မှတ်သားထားမည်
+  userStates.set(ctx.from.id, 'nightfury');
   try {
     await ctx.replyWithMediaGroup([
       { type: 'photo', media: { source: './nightfury1.jpg' }, caption: '🐉 Night Fury 3D Model (STL)\n\n💰 ဈေးနှုန်း: 200 KS' },
@@ -100,7 +98,7 @@ bot.action('buy_nightfury', async (ctx) => {
       Markup.inlineKeyboard([[Markup.button.callback('💳 KBZPay အချက်အလက် ကြည့်ရန်', 'pay_kpay_nightfury')]])
     );
   } catch (error) {
-    ctx.reply('🐉 Night Fury (200 KS)\nပုံများ တင်ရာတွင် အမှားရှိနေပါသည်။ KBZPay အချက်အလက် ကြည့်ရန် နှိပ်ပါ -',
+    ctx.reply('🐉 Night Fury (200 KS)\nKBZPay အချက်အလက် ကြည့်ရန် နှိပ်ပါ -',
       Markup.inlineKeyboard([[Markup.button.callback('💳 KBZPay အချက်အလက် ကြည့်ရန်', 'pay_kpay_nightfury')]]));
   }
 });
@@ -127,50 +125,48 @@ bot.on('photo', async (ctx) => {
   const username = ctx.from.username ? `@${ctx.from.username}` : ctx.from.first_name;
   const product = userStates.get(userId) || 'unknown_product';
 
-  // Admin ထံသို့ စလစ်ပုံနှင့် အတည်ပြုရန် ခလုတ်များ ပို့ပေးမည်
   try {
     await ctx.telegram.sendPhoto(ADMIN_CHAT_ID, ctx.message.photo[ctx.message.photo.length - 1].file_id, {
       caption: `🔔 **ငွေလွှဲပြေစာအသစ် လက်ခံရရှိပါပြီ**\n\n` +
                `👤 ဝယ်ယူသူ: ${username} (ID: \`${userId}\`)\n` +
                `📦 ဝယ်ယူလိုသော Model: **${product}**\n\n` +
-               `ငွေဝင်/မဝင် စစ်ဆေးပြီးပါက အောက်ပါခလုတ်ကို နှိပ်၍ ဖိုင်ပို့ပေးပါ။`,
+               `ငွေဝင်/မဝင် စစ်ဆေးပြီးပါက အောက်ပါခလုတ်ကို နှိပ်၍ Link ပို့ပေးပါ။`,
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        [Markup.button.callback(`✅ ဖိုင်ပို့မည် (${product})`, `approve_${product}_${userId}`)]
+        [Markup.button.callback(`✅ Download Link ပို့မည်`, `approve_${product}_${userId}`)]
       ])
     });
 
-    await ctx.reply('✅ ငွေလွှဲပြေစာ (Screenshot) လက်ခံရရှိပါပြီ။ Admin မှ ငွေစာရင်းစစ်ဆေးပြီးပါက ဤဘော့မှတစ်ဆင့် STL ဖိုင်ကို အလိုအလျောက် ပို့ပေးပါမည်။ ခဏစောင့်ဆိုင်းပေးပါ။');
+    await ctx.reply('✅ ငွေလွှဲပြေစာ (Screenshot) လက်ခံရရှိပါပြီ။ Admin မှ ငွေစာရင်းစစ်ဆေးပြီးပါက ဤဘော့မှတစ်ဆင့် Download Link ကို ပို့ပေးပါမည်။ ခဏစောင့်ဆိုင်းပေးပါ။');
   } catch (err) {
     console.error('Admin ထံ ပုံပို့ရာတွင် အမှားဖြစ်နေသည်:', err);
     ctx.reply('⚠️ စလစ်ပုံ ပို့ရာတွင် အခက်အခဲရှိနေပါသည်။ Admin (@TharPhyo9) ထံ တိုက်ရိုက် ပို့ပေးပါ။');
   }
 });
 
-// Admin က "✅ ဖိုင်ပို့မည်" ခလုတ်ကို နှိပ်လိုက်သောအခါ
+// Admin က "✅ Download Link ပို့မည်" ခလုတ်ကို နှိပ်သောအခါ
 bot.action(/^approve_(.+)_(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const product = ctx.match[1];
   const targetUserId = ctx.match[2];
 
-  let fileName = '';
-  let fileCaption = '';
+  let downloadLinkMessage = '';
 
   if (product === 'buddha') {
-    fileName = './buddha.stl'; // Folder ထဲရှိ ဖိုင်အမှန်နာမည်
-    fileCaption = '🙏 ကျေးဇူးတင် ပါတယ်။ ထီးလိုမင်းလို ဘုရား 3D Model (STL) ဖိုင်ကို ပို့ပေးလိုက်ပါပြီ။';
+    // 👇 Google Drive ထဲက ထီးလိုမင်းလို ဘုရား STL ဖိုင် Link ကို ဤနေရာတွင် ထည့်ပါ
+    downloadLinkMessage = '🙏 ကျေးဇူးတင်ပါတယ်။ ထီးလိုမင်းလို ဘုရား 3D Model (STL) ဖိုင်ကို အောက်ပါ Link မှ Download ရယူနိုင်ပါပြီ -\n\n🔗 https://drive.google.com/file/d/12NFsX8QQtQqC1EnaF9f4TOeF8yenYWX0/view?usp=drive_link';
   } else if (product === 'nightfury') {
-    fileName = './nightfury.stl'; // Folder ထဲရှိ ဖိုင်အမှန်နာမည်
-    fileCaption = '🐉 ကျေးဇူးတင် ပါတယ်။ Night Fury 3D Model (STL) ဖိုင်ကို ပို့ပေးလိုက်ပါပြီ။';
+    // 👇 Google Drive ထဲက Night Fury STL ဖိုင် Link ကို ဤနေရာတွင် ထည့်ပါ
+    downloadLinkMessage = '🐉 ကျေးဇူးတင်ပါတယ်။ Night Fury 3D Model (STL) ဖိုင်ကို အောက်ပါ Link မှ Download ရယူနိုင်ပါပြီ -\n\n🔗 https://drive.google.com/file/d/1fbf3FDxSut79SUK6X-JvmqM4smyusWbQ/view?usp=drive_link';
   }
 
   try {
-    // Customer ထံသို့ STL ဖိုင် ပို့ခြင်း
-    await bot.telegram.sendDocument(targetUserId, { source: fileName }, { caption: fileCaption });
-    await ctx.reply(`✅ Customer (ID: ${targetUserId}) ထံသို့ ${product} ဖိုင် ပို့ပြီးပါပြီ။`);
+    // Customer ထံသို့ Google Drive Link ပို့ခြင်း
+    await bot.telegram.sendMessage(targetUserId, downloadLinkMessage);
+    await ctx.reply(`✅ Customer (ID: ${targetUserId}) ထံသို့ Download Link ပို့ပြီးပါပြီ။`);
   } catch (err) {
-    console.error('ဖိုင်ပို့ရာတွင် အမှားဖြစ်နေသည်:', err);
-    await ctx.reply(`❌ ဖိုင်ပို့မရပါ။ Server ထဲတွင် "${fileName}" ဖိုင် ရှိမရှိ စစ်ဆေးပါ။`);
+    console.error('Link ပို့ရာတွင် အမှားဖြစ်နေသည်:', err);
+    await ctx.reply(`❌ Link ပို့မရပါ။`);
   }
 });
 
