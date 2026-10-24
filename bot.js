@@ -37,7 +37,7 @@ bot.start((ctx) => {
 
 bot.hears('🏠 Main Menu', async (ctx) => {
   ctx.reply(
-    '💎 **Ming Dhone Paid Models**',
+    '💎Premium Models💎',
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
@@ -69,7 +69,7 @@ bot.action('buy_buddha', async (ctx) => {
       { type: 'photo', media: { source: './buddha2.jpg' } }
     ]);
     await ctx.reply(
-      '💳 ဝယ်ယူရန်အတွက် အောက်ပါ KPay ဖြင့် ငွေလွှဲပြီး ငွေလွှဲပြေစာ (Screenshot) ပုံကို ဤဘော့ချတ်ထဲသို့ တိုက်ရိုက် ပို့ပေးပါရန်။',
+      '💳 ဝယ်ယူရန်အတွက် အောက်ပါ KPay ဖြင့် ငွေလွှဲပြီး ငွေလွှဲပြေစာ (Screenshot) ပုံကို ဤbot chatထဲသို့ တိုက်ရိုက် ပို့ပေးပါရန်။',
       Markup.inlineKeyboard([[Markup.button.callback('💳 KBZPay အချက်အလက် ကြည့်ရန်', 'pay_kpay_buddha')]])
     );
   } catch (error) {
@@ -83,11 +83,11 @@ bot.action('buy_nightfury', async (ctx) => {
   userStates.set(ctx.from.id, 'nightfury');
   try {
     await ctx.replyWithMediaGroup([
-      { type: 'photo', media: { source: './nightfury1.jpg' }, caption: '🐉 Night Fury 3D Model (STL)\n\n💰 ဈေးနှုန်း: 200 KS' },
+      { type: 'photo', media: { source: './nightfury1.jpg' }, caption: '🐉 Night Fury 3D Model (STL)\n\n💰 ဈေးနှုန်း: 200 KS(To test)' },
       { type: 'photo', media: { source: './nightfury2.jpg' } }
     ]);
     await ctx.reply(
-      '💳 ဝယ်ယူရန်အတွက် အောက်ပါ KPay ဖြင့် ငွေလွှဲပြီး ငွေလွှဲပြေစာ (Screenshot) ပုံကို ဤဘော့ချတ်ထဲသို့ တိုက်ရိုက် ပို့ပေးပါရန်။',
+      '💳 ဝယ်ယူရန်အတွက် အောက်ပါ KPay ဖြင့် ငွေလွှဲပြီး ငွေလွှဲပြေစာ (Screenshot) ပုံကို ဤ bot chatထဲသို့ တိုက်ရိုက် ပို့ပေးပါရန်။',
       Markup.inlineKeyboard([[Markup.button.callback('💳 KBZPay အချက်အလက် ကြည့်ရန်', 'pay_kpay_nightfury')]])
     );
   } catch (error) {
@@ -98,14 +98,14 @@ bot.action('buy_nightfury', async (ctx) => {
 
 bot.action('pay_kpay_buddha', async (ctx) => {
   await ctx.answerCbQuery();
-  const msg = '💳 **KBZPay Payment Details**\n\n📱 KPay Number: `09687880957`\n👤 Name: Phyo Wai Kyaw\n💰 Amount: 15,000 KS\n\n📌 ငွေလွှဲပြီးပါက **စလစ်ပုံ (Screenshot)** ကို ဤချတ်ထဲသို့ တိုက်ရိုက် ပို့ပေးပါ။';
+  const msg = '💳 **KBZPay Payment Details**\n\n📱 KPay Number: `09687880957`\n👤 Name: Phyo Wai Kyaw\n💰 Amount: 15,000 KS\n\n📌 ငွေလွှဲပြီးပါက **စလစ်ပုံ (Screenshot)** ကို ဤ chat ထဲသို့ တိုက်ရိုက် ပို့ပေးပါ။';
   try { await ctx.replyWithPhoto({ source: './kpay_qr.jpg' }, { caption: msg, parse_mode: 'Markdown' }); } 
   catch (e) { ctx.reply(msg, { parse_mode: 'Markdown' }); }
 });
 
 bot.action('pay_kpay_nightfury', async (ctx) => {
   await ctx.answerCbQuery();
-  const msg = '💳 **KBZPay Payment Details**\n\n📱 KPay Number: `09687880957`\n👤 Name: Phyo Wai Kyaw\n💰 Amount: 200 KS\n\n📌 ငွေလွှဲပြီးပါက **စလစ်ပုံ (Screenshot)** ကို ဤချတ်ထဲသို့ တိုက်ရိုက် ပို့ပေးပါ။';
+  const msg = '💳 **KBZPay Payment Details**\n\n📱 KPay Number: `09687880957`\n👤 Name: Phyo Wai Kyaw\n💰 Amount: 200 KS\n\n📌 ငွေလွှဲပြီးပါက **စလစ်ပုံ (Screenshot)** ကို ဤ chat ထဲသို့ တိုက်ရိုက် ပို့ပေးပါ။';
   try { await ctx.replyWithPhoto({ source: './kpay_qr.jpg' }, { caption: msg, parse_mode: 'Markdown' }); } 
   catch (e) { ctx.reply(msg, { parse_mode: 'Markdown' }); }
 });
