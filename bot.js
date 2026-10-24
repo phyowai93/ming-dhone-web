@@ -1,7 +1,6 @@
 const http = require('http');
 const { Telegraf, Markup } = require('telegraf');
 
-// Render ဘက်မှ 24/7 Online ဖြစ်နေစေရန် HTTP Server ဖွင့်ခြင်း
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('Ming Dhone Bot is running!');
@@ -18,7 +17,7 @@ if (!token) {
 }
 const bot = new Telegraf(token);
 
-// 👉 သင့်ရဲ့ Telegram Admin User ID ထည့်ရန် (ဥပမာ: '123456789')
+// 👉 Admin Telegram ID
 const ADMIN_CHAT_ID = '5889915101'; 
 
 const userStates = new Map();
@@ -27,17 +26,13 @@ bot.catch((err, ctx) => {
   console.error(`Error for ${ctx.updateType}:`, err);
 });
 
-// Chat box အောက်ခြေ မီနူး
 const bottomMenu = Markup.keyboard([
   ['🏠 Main Menu', '📞 Contact Admin'],
   ['<<< နောက်သို့', '>>> ရှေ့သို့']
 ]).resize();
 
 bot.start((ctx) => {
-  ctx.reply(
-    'မင်္ဂလာပါ! Ming Dhone 3D Model Marketplace မှ ကြိုဆိုပါတယ်။\nအောက်ပါ Menu ကို ရွေးချယ်ပါ -',
-    bottomMenu
-  );
+  ctx.reply('မင်္ဂလာပါ! Ming Dhone 3D Model Marketplace မှ ကြိုဆိုပါတယ်။\nအောက်ပါ Menu ကို ရွေးချယ်ပါ -', bottomMenu);
 });
 
 bot.hears('🏠 Main Menu', async (ctx) => {
@@ -65,7 +60,6 @@ bot.hears('<<< နောက်သို့', async (ctx) => {
   ctx.reply('⬅️ ရှေ့စာမျက်နှာသို့ မရှိသေးပါ။');
 });
 
-// Model 1: ထီးလိုမင်းလို ဘုရား
 bot.action('buy_buddha', async (ctx) => {
   await ctx.answerCbQuery();
   userStates.set(ctx.from.id, 'buddha');
@@ -84,7 +78,6 @@ bot.action('buy_buddha', async (ctx) => {
   }
 });
 
-// Model 2: Night Fury
 bot.action('buy_nightfury', async (ctx) => {
   await ctx.answerCbQuery();
   userStates.set(ctx.from.id, 'nightfury');
@@ -103,7 +96,6 @@ bot.action('buy_nightfury', async (ctx) => {
   }
 });
 
-// KPay Details (Buddha)
 bot.action('pay_kpay_buddha', async (ctx) => {
   await ctx.answerCbQuery();
   const msg = '💳 **KBZPay Payment Details**\n\n📱 KPay Number: `09687880957`\n👤 Name: Phyo Wai Kyaw\n💰 Amount: 15,000 KS\n\n📌 ငွေလွှဲပြီးပါက **စလစ်ပုံ (Screenshot)** ကို ဤချတ်ထဲသို့ တိုက်ရိုက် ပို့ပေးပါ။';
@@ -111,7 +103,6 @@ bot.action('pay_kpay_buddha', async (ctx) => {
   catch (e) { ctx.reply(msg, { parse_mode: 'Markdown' }); }
 });
 
-// KPay Details (Night Fury)
 bot.action('pay_kpay_nightfury', async (ctx) => {
   await ctx.answerCbQuery();
   const msg = '💳 **KBZPay Payment Details**\n\n📱 KPay Number: `09687880957`\n👤 Name: Phyo Wai Kyaw\n💰 Amount: 200 KS\n\n📌 ငွေလွှဲပြီးပါက **စလစ်ပုံ (Screenshot)** ကို ဤချတ်ထဲသို့ တိုက်ရိုက် ပို့ပေးပါ။';
@@ -119,11 +110,11 @@ bot.action('pay_kpay_nightfury', async (ctx) => {
   catch (e) { ctx.reply(msg, { parse_mode: 'Markdown' }); }
 });
 
-// Customer က ပုံ (Screenshot) ပို့လိုက်သည့်အခါ
+// Customer က ပုံပို့သည့်အခါ Admin ဆီသို့ ပို့ပေးခြင်း
 bot.on('photo', async (ctx) => {
   const userId = ctx.from.id;
   const username = ctx.from.username ? `@${ctx.from.username}` : ctx.from.first_name;
-  const product = userStates.get(userId) || 'unknown_product';
+  const product = userStates.get(userId) || 'buddha';
 
   try {
     await ctx.telegram.sendPhoto(ADMIN_CHAT_ID, ctx.message.photo[ctx.message.photo.length - 1].file_id, {
@@ -144,7 +135,7 @@ bot.on('photo', async (ctx) => {
   }
 });
 
-// Admin က "✅ Download Link ပို့မည်" ခလုတ်ကို နှိပ်သောအခါ
+// Admin က ခလုတ်နှိပ်၍ Link ပို့ခိုင်းသည့်အခါ
 bot.action(/^approve_(.+)_(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const product = ctx.match[1];
@@ -153,15 +144,12 @@ bot.action(/^approve_(.+)_(.+)$/, async (ctx) => {
   let downloadLinkMessage = '';
 
   if (product === 'buddha') {
-    // 👇 Google Drive ထဲက ထီးလိုမင်းလို ဘုရား STL ဖိုင် Link ကို ဤနေရာတွင် ထည့်ပါ
-    downloadLinkMessage = '🙏 ကျေးဇူးတင်ပါတယ်။ ထီးလိုမင်းလို ဘုရား 3D Model (STL) ဖိုင်ကို အောက်ပါ Link မှ Download ရယူနိုင်ပါပြီ -\n\n🔗 https://drive.google.com/file/d/12NFsX8QQtQqC1EnaF9f4TOeF8yenYWX0/view?usp=drive_link';
+    downloadLinkMessage = '🙏 ကျေးဇူးတင်ပါတယ်။ ထီးလိုမင်းလို ဘုရား 3D Model (STL) ဖိုင်ကို အောက်ပါ Link မှ Download ရယူနိုင်ပါပြီ -\n\n🔗 https://drive.google.com/file/d/12NFsX8QQtQqC1EnaF9f4TOef8YenyWX0/view?usp=drive_link';
   } else if (product === 'nightfury') {
-    // 👇 Google Drive ထဲက Night Fury STL ဖိုင် Link ကို ဤနေရာတွင် ထည့်ပါ
     downloadLinkMessage = '🐉 ကျေးဇူးတင်ပါတယ်။ Night Fury 3D Model (STL) ဖိုင်ကို အောက်ပါ Link မှ Download ရယူနိုင်ပါပြီ -\n\n🔗 https://drive.google.com/file/d/1fbf3FDxSut79SUK6X-JvmqM4smyusWbQ/view?usp=drive_link';
   }
 
   try {
-    // Customer ထံသို့ Google Drive Link ပို့ခြင်း
     await bot.telegram.sendMessage(targetUserId, downloadLinkMessage);
     await ctx.reply(`✅ Customer (ID: ${targetUserId}) ထံသို့ Download Link ပို့ပြီးပါပြီ။`);
   } catch (err) {
@@ -176,3 +164,4 @@ bot.launch()
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
+
