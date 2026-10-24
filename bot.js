@@ -26,9 +26,10 @@ bot.catch((err, ctx) => {
   console.error(`Error for ${ctx.updateType}:`, err);
 });
 
+// 👉 အောက်ခြေမီနူးတွင် Wallet နှင့် ငွေဖြည့်ရန် ထည့်သွင်းခြင်း
 const bottomMenu = Markup.keyboard([
   ['🏠 Main Menu', '📞 Contact Admin'],
-  ['<<< နောက်သို့', '>>> ရှေ့သို့']
+  ['💰 Wallet', '📥 ငွေဖြည့်ရန်']
 ]).resize();
 
 bot.start((ctx) => {
@@ -37,7 +38,7 @@ bot.start((ctx) => {
 
 bot.hears('🏠 Main Menu', async (ctx) => {
   ctx.reply(
-    '💎Premium Models💎',
+    '💎 **Ming Dhone Paid Models**',
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
@@ -52,12 +53,31 @@ bot.hears('📞 Contact Admin', async (ctx) => {
   ctx.reply('📞 အသေးစိတ် မေးမြန်းလိုပါက Admin (@TharPhyo9) ထံ တိုက်ရိုက် ဆက်သွယ်နိုင်ပါသည်။');
 });
 
-bot.hears('>>> ရှေ့သို့', async (ctx) => {
-  ctx.reply('➡️ နောက်စာမျက်နှာသို့ မရှိသေးပါ။');
+// 👉 Wallet ခလုတ် နှိပ်သည့်အခါ ပြသမည့် ပုံစံ
+bot.hears('💰 Wallet', async (ctx) => {
+  ctx.reply(
+    '💰 **သင့်ရဲ့ ပိုက်ဆံအိတ် (Wallet)**\n\n' +
+    '👤 အသုံးပြုသူ: ' + ctx.from.first_name + '\n' +
+    '💳 လက်ကျန်ငွေ: `0 KS`\n\n' +
+    '📌 ငွေဖြည့်သွင်းလိုပါက အောက်ပါ **"📥 ငွေဖြည့်ရန်"** ခလုတ်ကို နှိပ်ပါ။',
+    { parse_mode: 'Markdown' }
+  );
 });
 
-bot.hears('<<< နောက်သို့', async (ctx) => {
-  ctx.reply('⬅️ ရှေ့စာမျက်နှာသို့ မရှိသေးပါ။');
+// 👉 ငွေဖြည့်ရန် ခလုတ် နှိပ်သည့်အခါ ပြသမည့် ပုံစံ
+bot.hears('📥 ငွေဖြည့်ရန်', async (ctx) => {
+  const topUpMsg = '💳 **KBZPay ဖြင့် ငွေဖြည့်သွင်းရန်**\n\n' +
+                   '📱 KPay Number: `09687880957`\n' +
+                   '👤 Name: Phyo Wai Kyaw\n\n' +
+                   '📌 **ငွေဖြည့်နည်းလမ်း:**\n' +
+                   '၁။ အထက်ပါ KPay အကောင့်သို့ လိုအပ်သော ငွေပမာဏ လွှဲပေးပါ။\n' +
+                   '၂။ ငွေလွှဲပြီးပါက **Transaction Slip (စလစ်ပုံ)** နှင့် သင်၏ User ID (`' + ctx.from.id + '`) ကို Admin (@TharPhyo9) ထံ ပို့ပေးပါက Wallet ထဲသို့ ငွေဖြည့်သွင်းပေးပါမည်။';
+
+  try {
+    await ctx.replyWithPhoto({ source: './kpay_qr.jpg' }, { caption: topUpMsg, parse_mode: 'Markdown' });
+  } catch (error) {
+    ctx.reply(topUpMsg + '\n\n(⚠️ QR Code ပုံ ရှာမတွေ့ပါ)', { parse_mode: 'Markdown' });
+  }
 });
 
 bot.action('buy_buddha', async (ctx) => {
@@ -69,7 +89,7 @@ bot.action('buy_buddha', async (ctx) => {
       { type: 'photo', media: { source: './buddha2.jpg' } }
     ]);
     await ctx.reply(
-      '💳 ဝယ်ယူရန်အတွက် အောက်ပါ KPay ဖြင့် ငွေလွှဲပြီး ငွေလွှဲပြေစာ (Screenshot) ပုံကို ဤbot chatထဲသို့ တိုက်ရိုက် ပို့ပေးပါရန်။',
+      '💳 ဝယ်ယူရန်အတွက် အောက်ပါ KPay ဖြင့် ငွေလွှဲပြီး ငွေလွှဲပြေစာ (Screenshot) ပုံကို ဤ bot chatထဲသို့ တိုက်ရိုက် ပို့ပေးပါရန်။',
       Markup.inlineKeyboard([[Markup.button.callback('💳 KBZPay အချက်အလက် ကြည့်ရန်', 'pay_kpay_buddha')]])
     );
   } catch (error) {
@@ -83,7 +103,7 @@ bot.action('buy_nightfury', async (ctx) => {
   userStates.set(ctx.from.id, 'nightfury');
   try {
     await ctx.replyWithMediaGroup([
-      { type: 'photo', media: { source: './nightfury1.jpg' }, caption: '🐉 Night Fury 3D Model (STL)\n\n💰 ဈေးနှုန်း: 200 KS(To test)' },
+      { type: 'photo', media: { source: './nightfury1.jpg' }, caption: '🐉 Night Fury 3D Model (STL)\n\n💰 ဈေးနှုန်း: 200 KS (To test)' },
       { type: 'photo', media: { source: './nightfury2.jpg' } }
     ]);
     await ctx.reply(
@@ -144,7 +164,7 @@ bot.action(/^approve_(.+)_(.+)$/, async (ctx) => {
   let downloadLinkMessage = '';
 
   if (product === 'buddha') {
-    downloadLinkMessage = '🙏 ကျေးဇူးတင်ပါတယ်။ ထီးလိုမင်းလို ဘုရား 3D Model (STL) ဖိုင်ကို အောက်ပါ Link မှ Download ရယူနိုင်ပါပြီ -\n\n🔗 https://drive.google.com/file/d/12NFsX8QQtQqC1EnaF9f4TOeF8yenYWX0/view?usp=drive_link';
+    downloadLinkMessage = '🙏 ကျေးဇူးတင်ပါတယ်။ ထီးလိုမင်းလို ဘုရား 3D Model (STL) ဖိုင်ကို အောက်ပါ Link မှ Download ရယူနိုင်ပါပြီ -\n\n🔗 https://drive.google.com/file/d/12NFsX8QQtQqC1EnaF9f4TOef8YenyWX0/view?usp=drive_link';
   } else if (product === 'nightfury') {
     downloadLinkMessage = '🐉 ကျေးဇူးတင်ပါတယ်။ Night Fury 3D Model (STL) ဖိုင်ကို အောက်ပါ Link မှ Download ရယူနိုင်ပါပြီ -\n\n🔗 https://drive.google.com/file/d/1fbf3FDxSut79SUK6X-JvmqM4smyusWbQ/view?usp=drive_link';
   }
@@ -164,4 +184,3 @@ bot.launch()
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
-
