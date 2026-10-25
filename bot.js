@@ -89,7 +89,7 @@ bot.start((ctx) => {
 
 bot.hears('🏠 Main Menu', async (ctx) => {
   ctx.reply(
-    '💎Premium Models💎',
+    '💎 **Premium Models 💎**',
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
@@ -272,8 +272,10 @@ bot.on('text', async (ctx) => {
   }
 });
 
-// 👉 ငွေလွှဲစလစ်ပုံ ပို့လိုက်သည့်အခါ "စစ်ဆေးနေပါပြီ" ဟု စာသားပြသခြင်း
+// 👉 ငွေလွှဲစလစ်ပုံ ပို့လိုက်သည့်အခါ Loading (typing...) ပြသပြီး "စစ်ဆေးနေပါပြီ" ဟု ပြခြင်း
 bot.on('photo', async (ctx) => {
+  await ctx.sendChatAction('typing');
+
   const userId = Number(ctx.from.id);
   const username = ctx.from.username ? `@${ctx.from.username}` : ctx.from.first_name;
   const state = userStates.get(userId) || 'topup';
@@ -323,7 +325,7 @@ bot.action(/^ack_topup_(.+)_(.+)$/, async (ctx) => {
   try {
     await bot.telegram.sendMessage(
       targetUserId,
-      `✅ စစ်ဆေးမှုပြီးပါပြီ (${amount.toLocaleString()} KS)။ ဆက်လက်လုပ်ဆောင်နေပါသည်။`,
+      `✅ စစ်ဆေးမှုအောင်မြင်ပါသည် (${amount.toLocaleString()} KS)။ ဆက်လက် လုပ်ဆောင်နေပါသည်။`,
       { parse_mode: 'Markdown' }
     );
     await ctx.reply(`✅ Customer (ID: ${targetUserId}) ထံသို့ အကြောင်းကြားပြီးပါပြီ။`);
@@ -341,7 +343,7 @@ bot.action(/^ack_model_(.+)_(.+)$/, async (ctx) => {
   try {
     await bot.telegram.sendMessage(
       targetUserId,
-      `✅ စစ်ဆေးမှုပြီးပါပြီ (${product})။ ဆက်လက်လုပ်ဆောင်နေပါသည်။`,
+      `✅ စစ်ဆေးမှုအောင်မြင်ပါသည် (${product})။ ဆက်လက် လုပ်ဆောင်နေပါသည်။`,
       { parse_mode: 'Markdown' }
     );
     await ctx.reply(`✅ Customer (ID: ${targetUserId}) ထံသို့ အကြောင်းကြားပြီးပါပြီ။`);
