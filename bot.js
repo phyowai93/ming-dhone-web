@@ -19,14 +19,27 @@ if (!token) {
 }
 const bot = new Telegraf(token);
 
-// 👉 MongoDB သို့ ချိတ်ဆက်ခြင်း
-const MONGO_URI = process.env.MONGO_URI;
-if (MONGO_URI) {
-  mongoose.connect(MONGO_URI)
-    .then(() => console.log('MongoDB သို့ အောင်မြင်စွာ ချိတ်ဆက်ပြီးပါပြီ'))
-    .catch(err => console.error('MongoDB ချိတ်ဆက်မှု အမှား:', err));
+// 👉 Memory Backup Wallet (MongoDB အဆင်မပြေချိန်တွင်ပါ 0 မဖြစ်စေရန် ထိန်းသိမ်းပေးမည့်စနစ်)
+const memoryWallets = new Map();
+let dbLastError = 'ချိတ်ဆက်နေဆဲ...';
+
+// 👉 MongoDB URI ကို သန့်စင်ပြီး ချိတ်ဆက်ခြင်း (< > ကွင်းများနှင့် Space များ ပါနေပါက အလိုအလျောက် ဖယ်ရှားပေးသည်)
+let rawMongoUri = (process.env.MONGO_URI || '').trim();
+rawMongoUri = rawMongoUri.replace(/^["']|["']$/g, '').replace(/<([^>]+)>/g, '$1');
+
+if (rawMongoUri) {
+  mongoose.connect(rawMongoUri, { serverSelectionTimeoutMS: 5000 })
+    .then(() => {
+      console.log('MongoDB သို့ အောင်မြင်စွာ ချိတ်ဆက်ပြီးပါပြီ');
+      dbLastError = null;
+    })
+    .catch(err => {
+      console.error('MongoDB ချိတ်ဆက်မှု အမှား:', err.message);
+      dbLastError = err.message;
+    });
 } else {
-  console.error('ERROR: MONGO_URI is missing in Render Environment Variables!');
+  dbLastError = 'Render Environment တွင် MONGO_URI မရှိသေးပါ (သို့မဟုတ် Save မနှိပ်မိသေးပါ)';
+  console.error(dbLastError);
 }
 
 // 🗄️ Wallet Database Schema ဖန်တီးခြင်း
@@ -36,39 +49,58 @@ const walletSchema = new mongoose.Schema({
 });
 const Wallet = mongoose.model('Wallet', walletSchema);
 
-// Database မှ ငွေလက်ကျန် စစ်ဆေးသည့် Function
+// 👉 ငွေလက်ကျန် စစ်ဆေးသည့် Function (MongoDB + Memory Backup)
 const getBalance = async (userId) => {
-  try {
-    let wallet = await Wallet.findOne({ userId: Number(userId) });
-    return wallet && typeof wallet.balance === 'number' ? wallet.balance : 0;
-  } catch (err) {
-    console.error('Balance ဖတ်ရာတွင် အမှား:', err);
-    return 0;
+  const numericUserId = Number(userId);
+  const memBalance = memoryWallets.get(numericUserId) || 0;
+
+  // MongoDB ချိတ်ဆက်မှု အဆင်သင့်ဖြစ်နေမှသာ Database မှ ဖတ်မည်
+  if (mongoose.connection.readyState === 1) {
+    try {
+      const wallet = await Wallet.findOne({ userId: numericUserId });
+      if (wallet && typeof wallet.balance === 'number') {
+        const finalBal = Math.max(wallet.balance, memBalance);
+        memoryWallets.set(numericUserId, finalBal);
+        return finalBal;
+      }
+    } catch (err) {
+      dbLastError = err.message;
+    }
   }
+  return memBalance;
 };
 
-// Database ထဲသို့ ငွေပမာဏ တိကျမှန်ကန်စွာ ပေါင်းထည့်/ဖြတ်တောက်သည့် Atomic Update Function
+// 👉 ငွေပမာဏ ပေါင်းထည့်/ဖြတ်တောက်သည့် Function (လုံးဝ 0 ပြန်မကျစေရန် ကာကွယ်ထားသည်)
 const updateBalance = async (userId, amount) => {
-  try {
-    const numAmount = Number(amount) || 0;
-    const numericUserId = Number(userId);
+  const numericUserId = Number(userId);
+  const numAmount = Number(amount) || 0;
 
-    // $inc နှင့် upsert ကို အသုံးပြု၍ Race Condition နှင့် Duplicate Key Error ကို လုံးဝကာကွယ်ခြင်း
-    let wallet = await Wallet.findOneAndUpdate(
-      { userId: numericUserId },
-      { $inc: { balance: numAmount } },
-      { upsert: true, new: true }
-    );
+  // ၁။ လက်ရှိ ငွေလက်ကျန်ကို အရင်ယူမည်
+  let currentBalance = await getBalance(numericUserId);
 
-    if (wallet && wallet.balance < 0) {
-      wallet.balance = 0;
-      await wallet.save();
+  // ၂။ ငွေပမာဏအသစ်ကို တွက်ချက်မည်
+  let newBalance = currentBalance + numAmount;
+  if (newBalance < 0) newBalance = 0;
+
+  // ၃။ Memory ထဲတွင် ချက်ချင်း သိမ်းဆည်းမည် (Database Error တက်လျှင်တောင် ငွေလုံးဝမပျောက်စေရန်)
+  memoryWallets.set(numericUserId, newBalance);
+
+  // ၄။ MongoDB ချိတ်မိနေပါက Database ထဲသို့ပါ တစ်ပါတည်း သိမ်းဆည်းမည်
+  if (mongoose.connection.readyState === 1) {
+    try {
+      await Wallet.findOneAndUpdate(
+        { userId: numericUserId },
+        { $set: { balance: newBalance } },
+        { upsert: true, new: true }
+      );
+      dbLastError = null;
+    } catch (err) {
+      console.error('Balance Update DB Error:', err.message);
+      dbLastError = err.message;
     }
-    return wallet ? wallet.balance : 0;
-  } catch (err) {
-    console.error('Balance Update လုပ်ရာတွင် အမှား:', err);
-    return 0;
   }
+
+  return newBalance;
 };
 
 // 👉 Admin Telegram ID
@@ -88,6 +120,18 @@ const bottomMenu = Markup.keyboard([
 
 bot.start((ctx) => {
   ctx.reply('မင်္ဂလာပါ! Ming Dhone 3D Model Marketplace မှ ကြိုဆိုပါတယ်။\nအောက်ပါ Menu ကို ရွေးချယ်ပါ -', bottomMenu);
+});
+
+// 👉 Database အခြေအနေကို စစ်ဆေးရန် Command (/db ဟု ရိုက်ပါက ပြပေးမည်)
+bot.command('db', (ctx) => {
+  const isConnected = mongoose.connection.readyState === 1;
+  ctx.reply(
+    `🗄️ **Database စစ်ဆေးချက်**\n\n` +
+    `• အခြေအနေ: ${isConnected ? '🟢 ချိတ်ဆက်ထားသည် (Connected)' : '🔴 မချိတ်မိသေးပါ (Disconnected)'}\n` +
+    `• MONGO_URI ထည့်ထားမှု: ${rawMongoUri ? '✅ ရှိသည်' : '❌ မရှိပါ'}\n` +
+    `• မှတ်ချက်/အမှား: \`${dbLastError || 'အမှားမရှိပါ'}\``,
+    { parse_mode: 'Markdown' }
+  );
 });
 
 bot.hears('🏠 Main Menu', async (ctx) => {
@@ -328,7 +372,7 @@ bot.action(/^ack_topup_(.+)_(.+)$/, async (ctx) => {
   try {
     await bot.telegram.sendMessage(
       targetUserId,
-      `✅ စစ်ဆေးမှုအောင်မြင်ပါသည် (${amount.toLocaleString()} KS)။ ဆက်လက် လုပ်ဆောင်နေပါသည်၊`,
+      `✅ စစ်ဆေးမှုအောင်မြင်ပါသည် (${amount.toLocaleString()} KS)။ ဆက်လက် လုပ်ဆောင်နေပါသည်။`,
       { parse_mode: 'Markdown' }
     );
     await ctx.reply(`✅ Customer (ID: ${targetUserId}) ထံသို့ အကြောင်းကြားပြီးပါပြီ။`);
@@ -346,7 +390,7 @@ bot.action(/^ack_model_(.+)_(.+)$/, async (ctx) => {
   try {
     await bot.telegram.sendMessage(
       targetUserId,
-      `✅ စစ်ဆေးမှုအောင်မြင်ပါသည် (${product})။ ဆက်လက် လုပ်ဆောင်နေပါသည်၊`,
+      `✅ စစ်ဆေးမှုအောင်မြင်ပါသည် (${product})။ ဆက်လက် လုပ်ဆောင်နေပါသည်။`,
       { parse_mode: 'Markdown' }
     );
     await ctx.reply(`✅ Customer (ID: ${targetUserId}) ထံသို့ အကြောင်းကြားပြီးပါပြီ။`);
@@ -363,6 +407,7 @@ bot.action(/^approve_topup_(.+)_(.+)$/, async (ctx) => {
   const amount = parseInt(ctx.match[2]);
 
   const newBalance = await updateBalance(targetUserId, amount);
+  const isDbConnected = mongoose.connection.readyState === 1 && !dbLastError;
 
   try {
     await bot.telegram.sendMessage(
@@ -373,7 +418,14 @@ bot.action(/^approve_topup_(.+)_(.+)$/, async (ctx) => {
       { parse_mode: 'Markdown' }
     );
 
-    await ctx.reply(`✅ Customer (ID: ${targetUserId}) ၏ Wallet ထဲတွင် ငွေဖြည့်သွင်းပြီးပါပြီ။ (လက်ကျန်ငွေအသစ်: ${newBalance.toLocaleString()} KS)`);
+    let adminNotice = `✅ Customer (ID: ${targetUserId}) ၏ Wallet ထဲတွင် ငွေဖြည့်သွင်းပြီးပါပြီ။ (လက်ကျန်ငွေအသစ်: ${newBalance.toLocaleString()} KS)\n\n`;
+    if (isDbConnected) {
+      adminNotice += `🟢 Database: MongoDB ထဲသို့ အောင်မြင်စွာ သိမ်းဆည်းပြီးပါပြီ။`;
+    } else {
+      adminNotice += `⚠️ Database သတိပေးချက်: MongoDB မချိတ်မိသေးပါ (${dbLastError})။ လောလောဆယ် ယာယီ Memory စနစ်ဖြင့် ငွေပေါင်းပေးထားပါသည်။`;
+    }
+
+    await ctx.reply(adminNotice);
   } catch (err) {
     console.error('Customer ထံ Message ပို့ရာတွင် အမှားဖြစ်နေသည်:', err);
     await ctx.reply(`❌ Customer ထံ အကြောင်းကြားစာ ပို့မရပါ။`);
