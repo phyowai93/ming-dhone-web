@@ -1,4 +1,5 @@
 const http = require('http');
+const fs = require('fs');
 const { Telegraf, Markup } = require('telegraf');
 
 const server = http.createServer((req, res) => {
@@ -21,8 +22,32 @@ const bot = new Telegraf(token);
 const ADMIN_CHAT_ID = '5889915101'; 
 
 const userStates = new Map();
-const userWallets = new Map(); 
 const userTopupAmounts = new Map(); 
+
+// 📂 Wallet ငွေစာရင်းများ မပျောက်အောင် ဖိုင်ဖြင့် သိမ်းဆည်းခြင်း
+const WALLET_FILE = './wallets.json';
+
+const loadWallets = () => {
+  try {
+    if (fs.existsSync(WALLET_FILE)) {
+      const data = fs.readFileSync(WALLET_FILE, 'utf8');
+      return new Map(JSON.parse(data));
+    }
+  } catch (err) {
+    console.error('Wallet ဖိုင်ဖတ်ရာတွင် အမှားရှိသည်:', err);
+  }
+  return new Map();
+};
+
+const saveWallets = (walletsMap) => {
+  try {
+    fs.writeFileSync(WALLET_FILE, JSON.stringify(Array.from(walletsMap.entries())));
+  } catch (err) {
+    console.error('Wallet ဖိုင်သိမ်းဆည်းရာတွင် အမှားရှိသည်:', err);
+  }
+};
+
+const userWallets = loadWallets();
 
 bot.catch((err, ctx) => {
   console.error(`Error for ${ctx.updateType}:`, err);
@@ -39,7 +64,7 @@ bot.start((ctx) => {
 
 bot.hears('🏠 Main Menu', async (ctx) => {
   ctx.reply(
-    '💎 **Ming Dhone Paid Models**',
+    '💎Premiun Models💎',
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
@@ -164,6 +189,7 @@ bot.action('pay_wallet_buddha', async (ctx) => {
   }
 
   userWallets.set(userId, balance - price);
+  saveWallets(userWallets);
 
   const linkMsg = '🙏 ကျေးဇူးတင်ပါတယ်။ ထီးလိုမင်းလို ဘုရား 3D Model (STL) ဖိုင်ကို အောက်ပါ Link မှ Download ရယူနိုင်ပါပြီ -\n\n🔗 https://drive.google.com/file/d/12NFsX8QQtQqC1EnaF9f4TOef8YenyWX0/view?usp=drive_link';
   await ctx.reply(`✅ Wallet ထဲမှ \`${price.toLocaleString()} KS\` ဖြတ်တောက်ပြီး ဝယ်ယူမှု အောင်မြင်ပါသည်။\n💳 လက်ကျန်ငွေအသစ်: \`${(balance - price).toLocaleString()} KS\``, { parse_mode: 'Markdown' });
@@ -181,6 +207,7 @@ bot.action('pay_wallet_nightfury', async (ctx) => {
   }
 
   userWallets.set(userId, balance - price);
+  saveWallets(userWallets);
 
   const linkMsg = '🐉 ကျေးဇူးတင်ပါတယ်။ Night Fury 3D Model (STL) ဖိုင်ကို အောက်ပါ Link မှ Download ရယူနိုင်ပါပြီ -\n\n🔗 https://drive.google.com/file/d/1fbf3FDxSut79SUK6X-JvmqM4smyusWbQ/view?usp=drive_link';
   await ctx.reply(`✅ Wallet ထဲမှ \`${price.toLocaleString()} KS\` ဖြတ်တောက်ပြီး ဝယ်ယူမှု အောင်မြင်ပါသည်။\n💳 လက်ကျန်ငွေအသစ်: \`${(balance - price).toLocaleString()} KS\``, { parse_mode: 'Markdown' });
@@ -203,7 +230,6 @@ bot.action('pay_kpay_nightfury', async (ctx) => {
   catch (e) { ctx.reply(msg, { parse_mode: 'Markdown' }); }
 });
 
-// 👉 မသက်ဆိုင်သော စာသားများ ပို့လာပါက အလိုအလျောက် ဖျက်ပေးမည့် Handler
 const validTexts = ['🏠 Main Menu', '📞 Contact Admin', '💰 Wallet', '📥 ငွေဖြည့်ရန်'];
 
 bot.on('text', async (ctx) => {
@@ -223,14 +249,14 @@ bot.on('text', async (ctx) => {
   }
 });
 
-// 👉 ငွေလွှဲစလစ်ပုံ ပို့လိုက်သည့်အခါ Loading (Message Editing) စနစ်ဖြင့် ဆောင်ရွက်ခြင်း
+// 👉 ငွေလွှဲစလစ်ပုံ ပို့လိုက်သည့်အခါ Customer ဘက်တွင် "စစ်ဆေးနေပါပြီ" ဟု ပြပြီး ရပ်ထားမည်
 bot.on('photo', async (ctx) => {
   const userId = Number(ctx.from.id);
   const username = ctx.from.username ? `@${ctx.from.username}` : ctx.from.first_name;
   const state = userStates.get(userId) || 'topup';
 
-  // ⏳ ပထမဆုံး Loading စာသား ပို့မည်
-  const loadingMsg = await ctx.reply('⏳ ငွေလွှဲပြေစာကို စစ်ဆေးနေပါပြီ၊ ခဏစောင့်ပေးပါ...');
+  // Customer ဘက်သို့ စစ်ဆေးနေကြောင်းပြပြီး ရပ်ထားမည်
+  await ctx.reply('⏳ စစ်ဆေးနေပါပြီ။ ခေတ္တစောင့်ပါ...');
 
   try {
     if (state === 'topup') {
@@ -239,51 +265,71 @@ bot.on('photo', async (ctx) => {
         caption: `🔔 **ငွေဖြည့်သွင်းရန် စလစ်အသစ်**\n\n` +
                  `👤 ဝယ်ယူသူ: ${username} (ID: \`${userId}\`)\n` +
                  `💰 ရွေးချယ်ထားသော ပမာဏ: \`${topupAmount.toLocaleString()} KS\`\n\n` +
-                 `ငွေလွှဲငွေပမာဏ မှန်ကန်မှုရှိမရှိ စစ်ဆေးပြီးပါက အောက်ပါခလုတ်ကို နှိပ်၍ Wallet ထဲသို့ ငွေထည့်ပေးပါ။`,
+                 `အောက်ပါ ခလုတ်များကို ရွေးချယ်ပါ -`,
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard([
+          [Markup.button.callback(`👀 Admin ထံ ပို့ပြီးကြောင်းပြမည်`, `ack_topup_${userId}_${topupAmount}`)],
           [Markup.button.callback(`✅ ငွေဖြည့်အတည်ပြုမည် (${topupAmount.toLocaleString()} KS)`, `approve_topup_${userId}_${topupAmount}`)]
         ])
       });
-
-      // 🔄 Loading စာသားကို အောင်မြင်ကြောင်း Live ပြောင်းလဲမည် (Edit)
-      await ctx.telegram.editMessageText(
-        ctx.chat.id, 
-        loadingMsg.message_id, 
-        undefined, 
-        '✅ ငွေဖြည့်ပြေစာ အောင်မြင်စွာ လက်ခံရရှိပါပြီ။ Admin မှ ငွေစာရင်းစစ်ဆေးပြီးပါက သင့် Wallet ထဲသို့ ငွေဖြည့်သွင်းပေးပါမည်။'
-      );
     } else {
       const product = state;
       await ctx.telegram.sendPhoto(ADMIN_CHAT_ID, ctx.message.photo[ctx.message.photo.length - 1].file_id, {
         caption: `🔔 **ငွေလွှဲပြေစာအသစ် (Model ဝယ်ယူမှု)**\n\n` +
                  `👤 ဝယ်ယူသူ: ${username} (ID: \`${userId}\`)\n` +
                  `📦 ဝယ်ယူလိုသော Model: **${product}**\n\n` +
-                 `ငွေဝင်/မဝင် စစ်ဆေးပြီးပါက အောက်ပါခလုတ်ကို နှိပ်၍ Link ပို့ပေးပါ။`,
+                 `အောက်ပါ ခလုတ်များကို ရွေးချယ်ပါ -`,
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard([
-          [Markup.button.callback(`✅ Download Link ပို့မည်`, `approve_${product}_${userId}`)]
+          [Markup.button.callback(`👀 Admin ထံ ပို့ပြီးကြောင်းပြမည်`, `ack_model_${userId}_${product}`)],
+          [Markup.button.callback(`✅ Download Link ပို့မည်`, `approve_model_${userId}_${product}`)]
         ])
       });
-
-      // 🔄 Loading စာသားကို အောင်မြင်ကြောင်း Live ပြောင်းလဲမည် (Edit)
-      await ctx.telegram.editMessageText(
-        ctx.chat.id, 
-        loadingMsg.message_id, 
-        undefined, 
-        '✅ ငွေလွှဲပြေစာ အောင်မြင်စွာ လက်ခံရရှိပါပြီ။ Admin မှ ငွေစာရင်းစစ်ဆေးပြီးပါက ဤဘော့မှတစ်ဆင့် Download Link ကို ပို့ပေးပါမည်။'
-      );
     }
   } catch (err) {
     console.error('Admin ထံ ပုံပို့ရာတွင် အမှားဖြစ်နေသည်:', err);
-    try {
-      await ctx.telegram.editMessageText(ctx.chat.id, loadingMsg.message_id, undefined, '⚠️ စလစ်ပုံ ပို့ရာတွင် အခက်အခဲရှိနေပါသည်။ Admin ထံ တိုက်ရိုက် ပို့ပေးပါ။');
-    } catch (e) {
-      ctx.reply('⚠️ စလစ်ပုံ ပို့ရာတွင် အခက်အခဲရှိနေပါသည်။');
-    }
+    ctx.reply('⚠️ စလစ်ပုံ ပို့ရာတွင် အခက်အခဲရှိနေပါသည်။');
   }
 });
 
+// 👉 Admin က ပထမခလုတ် ("Admin ထံ ပို့ပြီးကြောင်းပြမည်") ကို နှိပ်သောအခါ
+bot.action(/^ack_topup_(.+)_(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const targetUserId = Number(ctx.match[1]);
+  const amount = parseInt(ctx.match[2]);
+
+  try {
+    await bot.telegram.sendMessage(
+      targetUserId,
+      `✅ Admin ထံသို့ စလစ်ရောက်ရှိပြီးဖြစ်ပါသည် (${amount.toLocaleString()} KS)။ ဆက်လက် စစ်ဆေးနေပါသည် ခေတ္တစောင့်ပေးပါ။`,
+      { parse_mode: 'Markdown' }
+    );
+    await ctx.reply(`✅ Customer (ID: ${targetUserId}) ထံသို့ "Admin ထံ ပို့ပြီးကြောင်း" အကြောင်းကြားပြီးပါပြီ။`);
+  } catch (err) {
+    console.error('Customer ထံ Message ပို့ရာတွင် အမှားဖြစ်နေသည်:', err);
+    await ctx.reply(`❌ Customer ထံ အကြောင်းကြားစာ ပို့မရပါ။`);
+  }
+});
+
+bot.action(/^ack_model_(.+)_(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const targetUserId = Number(ctx.match[1]);
+  const product = ctx.match[2];
+
+  try {
+    await bot.telegram.sendMessage(
+      targetUserId,
+      `✅ Admin ထံသို့ စလစ်ရောက်ရှိပြီးဖြစ်ပါသည် (${product})။ ဆက်လက် စစ်ဆေးနေပါသည် ခေတ္တစောင့်ပေးပါ။`,
+      { parse_mode: 'Markdown' }
+    );
+    await ctx.reply(`✅ Customer (ID: ${targetUserId}) ထံသို့ "Admin ထံ ပို့ပြီးကြောင်း" အကြောင်းကြားပြီးပါပြီ။`);
+  } catch (err) {
+    console.error('Customer ထံ Message ပို့ရာတွင် အမှားဖြစ်နေသည်:', err);
+    await ctx.reply(`❌ Customer ထံ အကြောင်းကြားစာ ပို့မရပါ။`);
+  }
+});
+
+// 👉 Admin က ဒုတိယခလုတ် (ငွေဖြည့်အတည်ပြုမည်) ကို နှိပ်သောအခါ
 bot.action(/^approve_topup_(.+)_(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const targetUserId = Number(ctx.match[1]);
@@ -292,6 +338,7 @@ bot.action(/^approve_topup_(.+)_(.+)$/, async (ctx) => {
   const currentBalance = userWallets.get(targetUserId) || 0;
   const newBalance = currentBalance + amount;
   userWallets.set(targetUserId, newBalance);
+  saveWallets(userWallets);
 
   try {
     await bot.telegram.sendMessage(
@@ -309,10 +356,11 @@ bot.action(/^approve_topup_(.+)_(.+)$/, async (ctx) => {
   }
 });
 
-bot.action(/^approve_(.+)_(.+)$/, async (ctx) => {
+// 👉 Admin က ဒုတိယခလုတ် (Download Link ပို့မည်) ကို နှိပ်သောအခါ
+bot.action(/^approve_model_(.+)_(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
-  const product = ctx.match[1];
-  const targetUserId = Number(ctx.match[2]);
+  const targetUserId = Number(ctx.match[1]);
+  const product = ctx.match[2];
 
   let downloadLinkMessage = '';
 
@@ -323,7 +371,7 @@ bot.action(/^approve_(.+)_(.+)$/, async (ctx) => {
   }
 
   try {
-    await bot.telegram.sendMessage(targetUserId, downloadLinkMessage);
+    await bot.telegram.sendMessage(targetUserId, downloadLinkMessage, { parse_mode: 'Markdown' });
     await ctx.reply(`✅ Customer (ID: ${targetUserId}) ထံသို့ Download Link ပို့ပြီးပါပြီ။`);
   } catch (err) {
     console.error('Link ပို့ရာတွင် အမှားဖြစ်နေသည်:', err);
