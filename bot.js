@@ -36,10 +36,10 @@ const walletSchema = new mongoose.Schema({
 });
 const Wallet = mongoose.model('Wallet', walletSchema);
 
-// Database မှ ငွေလက်ကျန် စစ်ဆေးသည့် Function (အမှားအယွင်းမရှိ စစ်ဆေးရန်)
+// Database မှ ငွေလက်ကျန် စစ်ဆေးသည့် Function
 const getBalance = async (userId) => {
   try {
-    let wallet = await Wallet.findOne({ userId });
+    let wallet = await Wallet.findOne({ userId: Number(userId) });
     return wallet && typeof wallet.balance === 'number' ? wallet.balance : 0;
   } catch (err) {
     console.error('Balance ဖတ်ရာတွင် အမှား:', err);
@@ -47,23 +47,21 @@ const getBalance = async (userId) => {
   }
 };
 
-// Database ထဲသို့ ငွေပမာဏ ပေါင်းထည့်/ဖြတ်တောက်သည့် Function (NaN မဖြစ်စေရန် ကာကွယ်ခြင်း)
+// Database ထဲသို့ ငွေပမာဏ ပေါင်းထည့်/ဖြတ်တောက်သည့် Function (Atomic Update)
 const updateBalance = async (userId, amount) => {
   try {
     const numAmount = Number(amount) || 0;
-    let wallet = await Wallet.findOne({ userId });
-    if (wallet) {
-      const currentBalance = Number(wallet.balance) || 0;
-      wallet.balance = currentBalance + numAmount;
-      if (wallet.balance < 0) wallet.balance = 0;
+    let wallet = await Wallet.findOneAndUpdate(
+      { userId: Number(userId) },
+      { $inc: { balance: numAmount } },
+      { upsert: true, new: true }
+    );
+    
+    if (wallet.balance < 0) {
+      wallet.balance = 0;
       await wallet.save();
-      return wallet.balance;
-    } else {
-      const newBalance = numAmount < 0 ? 0 : numAmount;
-      wallet = new Wallet({ userId, balance: newBalance });
-      await wallet.save();
-      return newBalance;
     }
+    return wallet.balance;
   } catch (err) {
     console.error('Balance Update လုပ်ရာတွင် အမှား:', err);
     return 0;
