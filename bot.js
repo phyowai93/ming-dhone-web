@@ -1,7 +1,8 @@
 const http = require('http');
-const fs = require('fs');
 const { Telegraf, Markup } = require('telegraf');
+const mongoose = require('mongoose');
 
+// Render ဘက်မှ 24/7 Online ဖြစ်နေစေရန် HTTP Server ဖွင့်ခြင်း
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('Ming Dhone Bot is running!');
@@ -18,36 +19,60 @@ if (!token) {
 }
 const bot = new Telegraf(token);
 
+// 👉 MongoDB သို့ ချိတ်ဆက်ခြင်း
+const MONGO_URI = process.env.MONGO_URI;
+if (MONGO_URI) {
+  mongoose.connect(MONGO_URI)
+    .then(() => console.log('MongoDB သို့ အောင်မြင်စွာ ချိတ်ဆက်ပြီးပါပြီ'))
+    .catch(err => console.error('MongoDB ချိတ်ဆက်မှု အမှား:', err));
+} else {
+  console.error('ERROR: MONGO_URI is missing in Render Environment Variables!');
+}
+
+// 🗄️ Wallet Database Schema ဖန်တီးခြင်း
+const walletSchema = new mongoose.Schema({
+  userId: { type: Number, required: true, unique: true },
+  balance: { type: Number, default: 0 }
+});
+const Wallet = mongoose.model('Wallet', walletSchema);
+
+// Database မှ ငွေလက်ကျန် စစ်ဆေးသည့် Function
+const getBalance = async (userId) => {
+  try {
+    let wallet = await Wallet.findOne({ userId });
+    return wallet ? wallet.balance : 0;
+  } catch (err) {
+    console.error('Balance ဖတ်ရာတွင် အမှား:', err);
+    return 0;
+  }
+};
+
+// Database ထဲသို့ ငွေပမာဏ ပေါင်းထည့်/ဖြတ်တောက်သည့် Function
+const updateBalance = async (userId, amount) => {
+  try {
+    let wallet = await Wallet.findOne({ userId });
+    if (wallet) {
+      wallet.balance += amount;
+      if (wallet.balance < 0) wallet.balance = 0;
+      await wallet.save();
+      return wallet.balance;
+    } else {
+      const newBalance = amount < 0 ? 0 : amount;
+      wallet = new Wallet({ userId, balance: newBalance });
+      await wallet.save();
+      return newBalance;
+    }
+  } catch (err) {
+    console.error('Balance Update လုပ်ရာတွင် အမှား:', err);
+    return 0;
+  }
+};
+
 // 👉 Admin Telegram ID
 const ADMIN_CHAT_ID = '5889915101'; 
 
 const userStates = new Map();
 const userTopupAmounts = new Map(); 
-
-// 📂 Wallet ငွေစာရင်းများ မပျောက်အောင် ဖိုင်ဖြင့် သိမ်းဆည်းခြင်း
-const WALLET_FILE = './wallets.json';
-
-const loadWallets = () => {
-  try {
-    if (fs.existsSync(WALLET_FILE)) {
-      const data = fs.readFileSync(WALLET_FILE, 'utf8');
-      return new Map(JSON.parse(data));
-    }
-  } catch (err) {
-    console.error('Wallet ဖိုင်ဖတ်ရာတွင် အမှားရှိသည်:', err);
-  }
-  return new Map();
-};
-
-const saveWallets = (walletsMap) => {
-  try {
-    fs.writeFileSync(WALLET_FILE, JSON.stringify(Array.from(walletsMap.entries())));
-  } catch (err) {
-    console.error('Wallet ဖိုင်သိမ်းဆည်းရာတွင် အမှားရှိသည်:', err);
-  }
-};
-
-const userWallets = loadWallets();
 
 bot.catch((err, ctx) => {
   console.error(`Error for ${ctx.updateType}:`, err);
@@ -64,7 +89,7 @@ bot.start((ctx) => {
 
 bot.hears('🏠 Main Menu', async (ctx) => {
   ctx.reply(
-    '💎Premiun Models💎',
+    '💎Premium Models💎',
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
@@ -81,7 +106,7 @@ bot.hears('📞 Contact Admin', async (ctx) => {
 
 bot.hears('💰 Wallet', async (ctx) => {
   const userId = Number(ctx.from.id);
-  const balance = userWallets.get(userId) || 0;
+  const balance = await getBalance(userId);
   ctx.reply(
     '💰 **သင့်ရဲ့ ပိုက်ဆံအိတ် (Wallet)**\n\n' +
     '👤 အသုံးပြုသူ: ' + ctx.from.first_name + '\n' +
@@ -181,36 +206,34 @@ bot.action('buy_nightfury', async (ctx) => {
 bot.action('pay_wallet_buddha', async (ctx) => {
   await ctx.answerCbQuery();
   const userId = Number(ctx.from.id);
-  const balance = userWallets.get(userId) || 0;
+  const balance = await getBalance(userId);
   const price = 15000;
 
   if (balance < price) {
     return ctx.reply(`❌ သင့် Wallet ထဲတွင် ငွေလုံလောက်မှု မရှိပါ။\n\n💳 လက်ကျန်ငွေ: \`${balance.toLocaleString()} KS\`\n💰 လိုအပ်သောငွေ: \`${price.toLocaleString()} KS\`\n\nကျေးဇူးပြု၍ အောက်ခြေမီနူးမှ **"📥 ငွေဖြည့်ရန်"** ကို နှိပ်၍ ငွေဖြည့်ပါ။`, { parse_mode: 'Markdown' });
   }
 
-  userWallets.set(userId, balance - price);
-  saveWallets(userWallets);
+  const newBalance = await updateBalance(userId, -price);
 
   const linkMsg = '🙏 ကျေးဇူးတင်ပါတယ်။ ထီးလိုမင်းလို ဘုရား 3D Model (STL) ဖိုင်ကို အောက်ပါ Link မှ Download ရယူနိုင်ပါပြီ -\n\n🔗 https://drive.google.com/file/d/12NFsX8QQtQqC1EnaF9f4TOef8YenyWX0/view?usp=drive_link';
-  await ctx.reply(`✅ Wallet ထဲမှ \`${price.toLocaleString()} KS\` ဖြတ်တောက်ပြီး ဝယ်ယူမှု အောင်မြင်ပါသည်။\n💳 လက်ကျန်ငွေအသစ်: \`${(balance - price).toLocaleString()} KS\``, { parse_mode: 'Markdown' });
+  await ctx.reply(`✅ Wallet ထဲမှ \`${price.toLocaleString()} KS\` ဖြတ်တောက်ပြီး ဝယ်ယူမှု အောင်မြင်ပါသည်။\n💳 လက်ကျန်ငွေအသစ်: \`${newBalance.toLocaleString()} KS\``, { parse_mode: 'Markdown' });
   await ctx.reply(linkMsg);
 });
 
 bot.action('pay_wallet_nightfury', async (ctx) => {
   await ctx.answerCbQuery();
   const userId = Number(ctx.from.id);
-  const balance = userWallets.get(userId) || 0;
+  const balance = await getBalance(userId);
   const price = 200;
 
   if (balance < price) {
     return ctx.reply(`❌ သင့် Wallet ထဲတွင် ငွေလုံလောက်မှု မရှိပါ။\n\n💳 လက်ကျန်ငွေ: \`${balance.toLocaleString()} KS\`\n💰 လိုအပ်သောငွေ: \`${price.toLocaleString()} KS\`\n\nကျေးဇူးပြု၍ အောက်ခြေမီနူးမှ **"📥 ငွေဖြည့်ရန်"** ကို နှိပ်၍ ငွေဖြည့်ပါ။`, { parse_mode: 'Markdown' });
   }
 
-  userWallets.set(userId, balance - price);
-  saveWallets(userWallets);
+  const newBalance = await updateBalance(userId, -price);
 
   const linkMsg = '🐉 ကျေးဇူးတင်ပါတယ်။ Night Fury 3D Model (STL) ဖိုင်ကို အောက်ပါ Link မှ Download ရယူနိုင်ပါပြီ -\n\n🔗 https://drive.google.com/file/d/1fbf3FDxSut79SUK6X-JvmqM4smyusWbQ/view?usp=drive_link';
-  await ctx.reply(`✅ Wallet ထဲမှ \`${price.toLocaleString()} KS\` ဖြတ်တောက်ပြီး ဝယ်ယူမှု အောင်မြင်ပါသည်။\n💳 လက်ကျန်ငွေအသစ်: \`${(balance - price).toLocaleString()} KS\``, { parse_mode: 'Markdown' });
+  await ctx.reply(`✅ Wallet ထဲမှ \`${price.toLocaleString()} KS\` ဖြတ်တောက်ပြီး ဝယ်ယူမှု အောင်မြင်ပါသည်။\n💳 လက်ကျန်ငွေအသစ်: \`${newBalance.toLocaleString()} KS\``, { parse_mode: 'Markdown' });
   await ctx.reply(linkMsg);
 });
 
@@ -249,13 +272,12 @@ bot.on('text', async (ctx) => {
   }
 });
 
-// 👉 ငွေလွှဲစလစ်ပုံ ပို့လိုက်သည့်အခါ Customer ဘက်တွင် "စစ်ဆေးနေပါပြီ" ဟု ပြပြီး ရပ်ထားမည်
+// 👉 ငွေလွှဲစလစ်ပုံ ပို့လိုက်သည့်အခါ "စစ်ဆေးနေပါပြီ" ဟု စာသားပြသခြင်း
 bot.on('photo', async (ctx) => {
   const userId = Number(ctx.from.id);
   const username = ctx.from.username ? `@${ctx.from.username}` : ctx.from.first_name;
   const state = userStates.get(userId) || 'topup';
 
-  // Customer ဘက်သို့ စစ်ဆေးနေကြောင်းပြပြီး ရပ်ထားမည်
   await ctx.reply('⏳ စစ်ဆေးနေပါပြီ။ ခေတ္တစောင့်ပါ...');
 
   try {
@@ -292,7 +314,7 @@ bot.on('photo', async (ctx) => {
   }
 });
 
-// 👉 Admin က ပထမခလုတ် ("Admin ထံ ပို့ပြီးကြောင်းပြမည်") ကို နှိပ်သောအခါ
+// 👉 Admin က ပထမခလုတ်ကို နှိပ်သောအခါ
 bot.action(/^ack_topup_(.+)_(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const targetUserId = Number(ctx.match[1]);
@@ -301,10 +323,10 @@ bot.action(/^ack_topup_(.+)_(.+)$/, async (ctx) => {
   try {
     await bot.telegram.sendMessage(
       targetUserId,
-      `✅ Admin ထံသို့ စလစ်ရောက်ရှိပြီးဖြစ်ပါသည် (${amount.toLocaleString()} KS)။ ဆက်လက် စစ်ဆေးနေပါသည် ခေတ္တစောင့်ပေးပါ။`,
+      `✅ စစ်ဆေးမှုပြီးပါပြီ (${amount.toLocaleString()} KS)။ ဆက်လက်လုပ်ဆောင်နေပါသည်။`,
       { parse_mode: 'Markdown' }
     );
-    await ctx.reply(`✅ Customer (ID: ${targetUserId}) ထံသို့ "Admin ထံ ပို့ပြီးကြောင်း" အကြောင်းကြားပြီးပါပြီ။`);
+    await ctx.reply(`✅ Customer (ID: ${targetUserId}) ထံသို့ အကြောင်းကြားပြီးပါပြီ။`);
   } catch (err) {
     console.error('Customer ထံ Message ပို့ရာတွင် အမှားဖြစ်နေသည်:', err);
     await ctx.reply(`❌ Customer ထံ အကြောင်းကြားစာ ပို့မရပါ။`);
@@ -319,10 +341,10 @@ bot.action(/^ack_model_(.+)_(.+)$/, async (ctx) => {
   try {
     await bot.telegram.sendMessage(
       targetUserId,
-      `✅ Admin ထံသို့ စလစ်ရောက်ရှိပြီးဖြစ်ပါသည် (${product})။ ဆက်လက် စစ်ဆေးနေပါသည် ခေတ္တစောင့်ပေးပါ။`,
+      `✅ စစ်ဆေးမှုပြီးပါပြီ (${product})။ ဆက်လက်လုပ်ဆောင်နေပါသည်။`,
       { parse_mode: 'Markdown' }
     );
-    await ctx.reply(`✅ Customer (ID: ${targetUserId}) ထံသို့ "Admin ထံ ပို့ပြီးကြောင်း" အကြောင်းကြားပြီးပါပြီ။`);
+    await ctx.reply(`✅ Customer (ID: ${targetUserId}) ထံသို့ အကြောင်းကြားပြီးပါပြီ။`);
   } catch (err) {
     console.error('Customer ထံ Message ပို့ရာတွင် အမှားဖြစ်နေသည်:', err);
     await ctx.reply(`❌ Customer ထံ အကြောင်းကြားစာ ပို့မရပါ။`);
@@ -335,10 +357,7 @@ bot.action(/^approve_topup_(.+)_(.+)$/, async (ctx) => {
   const targetUserId = Number(ctx.match[1]);
   const amount = parseInt(ctx.match[2]);
 
-  const currentBalance = userWallets.get(targetUserId) || 0;
-  const newBalance = currentBalance + amount;
-  userWallets.set(targetUserId, newBalance);
-  saveWallets(userWallets);
+  const newBalance = await updateBalance(targetUserId, amount);
 
   try {
     await bot.telegram.sendMessage(
