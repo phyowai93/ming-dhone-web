@@ -36,28 +36,30 @@ const walletSchema = new mongoose.Schema({
 });
 const Wallet = mongoose.model('Wallet', walletSchema);
 
-// Database မှ ငွေလက်ကျန် စစ်ဆေးသည့် Function
+// Database မှ ငွေလက်ကျန် စစ်ဆေးသည့် Function (အမှားအယွင်းမရှိ စစ်ဆေးရန်)
 const getBalance = async (userId) => {
   try {
     let wallet = await Wallet.findOne({ userId });
-    return wallet ? wallet.balance : 0;
+    return wallet && typeof wallet.balance === 'number' ? wallet.balance : 0;
   } catch (err) {
     console.error('Balance ဖတ်ရာတွင် အမှား:', err);
     return 0;
   }
 };
 
-// Database ထဲသို့ ငွေပမာဏ ပေါင်းထည့်/ဖြတ်တောက်သည့် Function
+// Database ထဲသို့ ငွေပမာဏ ပေါင်းထည့်/ဖြတ်တောက်သည့် Function (NaN မဖြစ်စေရန် ကာကွယ်ခြင်း)
 const updateBalance = async (userId, amount) => {
   try {
+    const numAmount = Number(amount) || 0;
     let wallet = await Wallet.findOne({ userId });
     if (wallet) {
-      wallet.balance += amount;
+      const currentBalance = Number(wallet.balance) || 0;
+      wallet.balance = currentBalance + numAmount;
       if (wallet.balance < 0) wallet.balance = 0;
       await wallet.save();
       return wallet.balance;
     } else {
-      const newBalance = amount < 0 ? 0 : amount;
+      const newBalance = numAmount < 0 ? 0 : numAmount;
       wallet = new Wallet({ userId, balance: newBalance });
       await wallet.save();
       return newBalance;
@@ -325,7 +327,7 @@ bot.action(/^ack_topup_(.+)_(.+)$/, async (ctx) => {
   try {
     await bot.telegram.sendMessage(
       targetUserId,
-      `✅ စစ်ဆေးမှုအောင်မြင်ပါသည် (${amount.toLocaleString()} KS)။ ဆက်လက် လုပ်ဆောင်နေပါသည်။`,
+      `✅ စစ်ဆေးမှုအောင်မြင်ပါသည် (${amount.toLocaleString()} KS)။ ဆက်လက် လုပ်ဆောင်နေပါသည်၊`,
       { parse_mode: 'Markdown' }
     );
     await ctx.reply(`✅ Customer (ID: ${targetUserId}) ထံသို့ အကြောင်းကြားပြီးပါပြီ။`);
@@ -343,7 +345,7 @@ bot.action(/^ack_model_(.+)_(.+)$/, async (ctx) => {
   try {
     await bot.telegram.sendMessage(
       targetUserId,
-      `✅ စစ်ဆေးမှုအောင်မြင်ပါသည် (${product})။ ဆက်လက် လုပ်ဆောင်နေပါသည်။`,
+      `✅ စစ်ဆေးမှုအောင်မြင်ပါသည် (${product})။ ဆက်လက် လုပ်ဆောင်နေပါသည်၊`,
       { parse_mode: 'Markdown' }
     );
     await ctx.reply(`✅ Customer (ID: ${targetUserId}) ထံသို့ အကြောင်းကြားပြီးပါပြီ။`);
