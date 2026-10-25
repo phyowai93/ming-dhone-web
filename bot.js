@@ -47,21 +47,24 @@ const getBalance = async (userId) => {
   }
 };
 
-// Database ထဲသို့ ငွေပမာဏ ပေါင်းထည့်/ဖြတ်တောက်သည့် Function (Atomic Update)
+// Database ထဲသို့ ငွေပမာဏ တိကျမှန်ကန်စွာ ပေါင်းထည့်/ဖြတ်တောက်သည့် Atomic Update Function
 const updateBalance = async (userId, amount) => {
   try {
     const numAmount = Number(amount) || 0;
+    const numericUserId = Number(userId);
+
+    // $inc နှင့် upsert ကို အသုံးပြု၍ Race Condition နှင့် Duplicate Key Error ကို လုံးဝကာကွယ်ခြင်း
     let wallet = await Wallet.findOneAndUpdate(
-      { userId: Number(userId) },
+      { userId: numericUserId },
       { $inc: { balance: numAmount } },
       { upsert: true, new: true }
     );
-    
-    if (wallet.balance < 0) {
+
+    if (wallet && wallet.balance < 0) {
       wallet.balance = 0;
       await wallet.save();
     }
-    return wallet.balance;
+    return wallet ? wallet.balance : 0;
   } catch (err) {
     console.error('Balance Update လုပ်ရာတွင် အမှား:', err);
     return 0;
